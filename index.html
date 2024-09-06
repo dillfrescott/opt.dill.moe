@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Media Optimizer</title>
+    <title>Media Super Optimizer</title>
     <script src="./jszip.min.js"></script>
     <script src="./pako.min.js"></script>
     <script src="./ffmpeg.min.js"></script>
@@ -83,7 +83,7 @@
 </head>
 <body>
     <div id="optimize-form">
-        <h1>Media Optimizer</h1>
+        <h1>Media Super Optimizer</h1>
         <form id="form">
             <label for="file">Select Media Files to Optimize:</label>
             <input type="file" id="file" name="file" multiple required>
@@ -123,10 +123,13 @@
                     try {
                         if (file.type.startsWith('video/')) {
                             const optimizedVideo = await optimizeVideo(file, updateFFmpegProgress);
-                            zip.file(file.name, optimizedVideo);
+                            zip.file(file.name.replace(/\.[^/.]+$/, "") + ".webm", optimizedVideo);
                         } else if (file.type.startsWith('audio/')) {
                             const optimizedAudio = await optimizeAudio(file, updateFFmpegProgress);
                             zip.file(file.name.replace(/\.[^/.]+$/, "") + ".opus", optimizedAudio); // Ensure .opus extension
+                        } else if (file.type.startsWith('image/')) {
+                            const optimizedImage = await optimizeImage(file, updateFFmpegProgress);
+                            zip.file(file.name.replace(/\.[^/.]+$/, "") + ".avif", optimizedImage); // Ensure .avif extension
                         } else {
                             zip.file(file.name, file); // Add other file types to zip
                         }
@@ -157,7 +160,7 @@
             return new Promise((resolve, reject) => {
                 const reader = new FileReader();
                 reader.onload = async (e) => {
-                    const { createFFmpeg, fetchFile } = FFmpeg;
+                    const { createFFmpeg } = FFmpeg;
                     const ffmpeg = createFFmpeg({ 
                         log: true,
                         progress: progressCallback
@@ -166,8 +169,8 @@
                     try {
                         await ffmpeg.load();
                         ffmpeg.FS('writeFile', 'input.mp4', new Uint8Array(e.target.result));
-                        await ffmpeg.run('-i', 'input.mp4', '-vf', 'scale=1280:-2', '-strict', '-2', '-deadline', 'good', '-crf', '32', '-cpu-used', '5', '-c:a', 'opus', '-b:a', '128k', 'output.webm');
-                        const data = ffmpeg.FS('readFile', 'output.mp4');
+                        await ffmpeg.run('-i', 'input.mp4', '-strict', '-2', '-c:v', 'libsvtav1', '-crf', '40', '-preset', '0', '-c:a', 'opus', '-b:a', '128k', 'output.webm');
+                        const data = ffmpeg.FS('readFile', 'output.webm');
                         const optimizedVideo = new Blob([data.buffer], { type: 'video/webm' });
 
                         resolve(optimizedVideo);
@@ -188,7 +191,7 @@
             return new Promise((resolve, reject) => {
                 const reader = new FileReader();
                 reader.onload = async (e) => {
-                    const { createFFmpeg, fetchFile } = FFmpeg;
+                    const { createFFmpeg } = FFmpeg;
                     const ffmpeg = createFFmpeg({ 
                         log: true,
                         progress: progressCallback
@@ -205,6 +208,37 @@
 
                         ffmpeg.FS('unlink', 'input.audio');
                         ffmpeg.FS('unlink', 'output.opus');
+                    } catch (error) {
+                        reject(error);
+                    }
+                };
+
+                reader.onerror = reject;
+                reader.readAsArrayBuffer(file);
+            });
+        }
+
+        async function optimizeImage(file, progressCallback) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = async (e) => {
+                    const { createFFmpeg } = FFmpeg;
+                    const ffmpeg = createFFmpeg({ 
+                        log: true,
+                        progress: progressCallback
+                    });
+
+                    try {
+                        await ffmpeg.load();
+                        ffmpeg.FS('writeFile', 'input.png', new Uint8Array(e.target.result)); // Assuming PNG input
+                        await ffmpeg.run('-i', 'input.png', '-c:v', 'libaom-av1', 'output.avif');
+                        const data = ffmpeg.FS('readFile', 'output.avif');
+                        const optimizedImage = new Blob([data.buffer], { type: 'image/avif' });
+
+                        resolve(optimizedImage);
+
+                        ffmpeg.FS('unlink', 'input.png');
+                        ffmpeg.FS('unlink', 'output.avif');
                     } catch (error) {
                         reject(error);
                     }
