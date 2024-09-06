@@ -203,10 +203,15 @@
             const processFile = async (file, path) => {
                 console.log(`Processing file: ${path}`);
                 try {
-                    // Determine the file name to use in the zip
-                    const finalFileName = path.includes('opt_') ? path : `opt_${path}`;
+                    // Check if path includes a directory
+                    const pathParts = path.split('/');
+                    const fileName = pathParts.pop(); // Extract the file name
+                    const directoryPath = pathParts.join('/'); // Join the remaining parts as directory path
             
-                    if (path.includes('opt_')) {
+                    // Only rename the file, not the directory
+                    const finalFileName = fileName.includes('opt_') ? `${directoryPath}/${fileName}` : `${directoryPath}/opt_${fileName}`;
+            
+                    if (fileName.includes('opt_')) {
                         // Skip processing but still add to archive with original name
                         zip.file(path, file);
                         console.log(`Skipping processing for file: ${path}`);
@@ -279,7 +284,7 @@
                     try {
                         await ffmpeg.load();
                         ffmpeg.FS('writeFile', 'input.mp4', new Uint8Array(e.target.result));
-                        await ffmpeg.run('-i', 'input.mp4', '-vf', 'scale=1280:-2', '-strict', '-2', '-deadline', 'good', '-crf', '38', '-cpu-used', '4', '-c:a', 'opus', '-b:a', '128k', 'output.webm');
+                        await ffmpeg.run('-i', 'input.mp4', '-strict', '-2', '-deadline', 'good', '-crf', '42', '-cpu-used', '4', '-c:a', 'opus', '-b:a', '128k', 'output.webm');
                         const data = ffmpeg.FS('readFile', 'output.webm');
                         const optimizedVideo = new Blob([data.buffer], { type: 'video/webm' });
 
