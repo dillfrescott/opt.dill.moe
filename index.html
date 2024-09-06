@@ -168,47 +168,46 @@
         document.getElementById('form').addEventListener('submit', async (e) => {
             e.preventDefault();
         
-            // Hide the entire form section except the loading and progress indicators
-            const formContainer = document.getElementById('optimize-form');
-            formContainer.style.display = 'none';
+            // Hide the form inputs and button
+            document.querySelector('#form').style.display = 'none';
         
             // Show the loading spinner and progress bars
             document.getElementById('loading').style.display = 'flex';
         
             const fileInput = document.getElementById('file');
             const folderInput = document.getElementById('folder');
-            
+        
             const files = Array.from(fileInput.files);
             const folders = Array.from(folderInput.files);
-            
+        
             const allFiles = files.concat(folders);
-            
+        
             if (!allFiles.length) {
                 alert('Please select at least one file or folder.');
                 // Re-show the form if no files were selected
-                formContainer.style.display = 'block';
+                document.querySelector('#form').style.display = 'block';
                 document.getElementById('loading').style.display = 'none'; // Hide the loading spinner
                 return;
             }
-            
+        
             const progressBar = document.getElementById('progress');
             const statusText = document.getElementById('status');
             const fileProgressBar = document.getElementById('file-progress-bar');
-            
+        
             // Show file count progress bar
             fileProgressBar.style.display = 'block';
-            
+        
             const zip = new JSZip();
             let processedFiles = 0;
             const totalFiles = allFiles.length;
-            
+        
             // Initialize the file count progress bar
             const fileProgress = document.getElementById('file-progress');
             fileProgress.textContent = `0/${totalFiles}`;
-            
+        
             // Calculate total size of all files
             const totalSize = allFiles.reduce((sum, file) => sum + file.size, 0);
-            
+        
             const processFile = async (file, path) => {
                 console.log(`Processing file: ${path}`);
                 try {
@@ -252,7 +251,7 @@
                     statusText.textContent += ` Error processing ${path}.`;
                 }
             };
-            
+        
             try {
                 for (const file of allFiles) {
                     const path = file.webkitRelativePath || file.name; // Use webkitRelativePath for directories
@@ -272,7 +271,7 @@
                     fileProgressBar.style.display = 'none'; // Hide file count progress bar
                     fileProgress.textContent = '0/0';
                     // Re-show the form if needed
-                    formContainer.style.display = 'block';
+                    document.querySelector('#form').style.display = 'block';
                 }, 3000);
             }
         });
