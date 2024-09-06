@@ -220,7 +220,7 @@
                         console.log(`Skipping processing for file: ${path}`);
                         return { fileName: path, file: file };
                     } else {
-                        // Process the file and add 'opt_' prefix
+                        // Process the file and add 'opt_' prefix only if not already present
                         const finalFileName = directoryPath ? `${directoryPath}/opt_${fileName}` : `opt_${fileName}`;
                         statusText.textContent = `Processing ${path}...`;
             
