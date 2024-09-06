@@ -218,8 +218,8 @@
                     let finalFileName;
                     let optimizedFile;
             
-                    // Check if the file name starts with 'opt_'
-                    if (/\/opt_/.test(path)) {
+                    // Check if the file name contains 'opt_' (but not at the start)
+                    if (fileName.includes('opt_')) {
                         // Skip processing and retain the original filename
                         console.log(`Skipping processing for file: ${path}`);
                         finalFileName = `${directoryPath}/${fileName}`;
