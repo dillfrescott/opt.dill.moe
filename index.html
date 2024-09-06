@@ -215,14 +215,16 @@
                     const fileName = pathParts.pop(); // Extract the file name
                     const directoryPath = pathParts.join('/'); // Join the remaining parts as directory path
             
+                    // Check if the file name contains 'opt_' anywhere
+                    const shouldSkip = fileName.includes('opt_');
+            
                     let finalFileName;
                     let optimizedFile;
             
-                    // Check if the file name starts with 'opt_' or contains 'opt_' anywhere in the name
-                    if (fileName.startsWith('opt_') || fileName.includes('opt_')) {
+                    if (shouldSkip) {
                         // Skip processing and retain the original filename
                         console.log(`Skipping processing for file: ${path}`);
-                        finalFileName = path; // Use the original path and filename without modification
+                        finalFileName = path; // Keep the original path and filename
                         optimizedFile = file;
                     } else {
                         // Process the file and add 'opt_' prefix
