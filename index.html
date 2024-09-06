@@ -167,6 +167,11 @@
     <script>
         document.getElementById('form').addEventListener('submit', async (e) => {
             e.preventDefault();
+        
+            // Hide the form elements after submission
+            document.getElementById('optimize-form').style.display = 'none';
+            
+            // Rest of your code...
             
             const fileInput = document.getElementById('file');
             const folderInput = document.getElementById('folder');
@@ -178,6 +183,8 @@
             
             if (!allFiles.length) {
                 alert('Please select at least one file or folder.');
+                // Re-show the form if no files were selected
+                document.getElementById('optimize-form').style.display = 'block';
                 return;
             }
             
@@ -207,10 +214,10 @@
                     const pathParts = path.split('/');
                     const fileName = pathParts.pop(); // Extract the file name
                     const directoryPath = pathParts.join('/'); // Join the remaining parts as directory path
-            
+        
                     // Only rename the file, not the directory
                     const finalFileName = fileName.includes('opt_') ? `${directoryPath}/${fileName}` : `${directoryPath}/opt_${fileName}`;
-            
+        
                     if (fileName.includes('opt_')) {
                         // Skip processing but still add to archive with original name
                         zip.file(path, file);
@@ -218,7 +225,7 @@
                     } else {
                         // Process the file and add to archive with 'opt_' prefix
                         statusText.textContent = `Processing ${path}...`;
-            
+        
                         let optimizedFile;
                         if (file.type.startsWith('video/')) {
                             optimizedFile = await optimizeVideo(file, updateFFmpegProgress);
@@ -233,7 +240,7 @@
                             zip.file(finalFileName, file);
                         }
                     }
-            
+        
                     processedFiles++;
                     const processedSize = allFiles.slice(0, processedFiles).reduce((sum, file) => sum + file.size, 0);
                     updateProgress(processedSize, totalSize);
@@ -249,7 +256,7 @@
                     const path = file.webkitRelativePath || file.name; // Use webkitRelativePath for directories
                     await processFile(file, path);
                 }
-            
+        
                 statusText.textContent = 'Compressing files...';
                 await compressAndDownload(zip, statusText, progressBar);
             } catch (error) {
@@ -262,6 +269,8 @@
                     progressBar.textContent = '0%';
                     fileProgressBar.style.display = 'none'; // Hide file count progress bar
                     fileProgress.textContent = '0/0';
+                    // Re-show the form after the process is complete
+                    document.getElementById('optimize-form').style.display = 'block';
                 }, 3000);
             }
         });
