@@ -98,159 +98,165 @@
         </div>
     </div>
     <script>
-		document.getElementById('form').addEventListener('submit', async (e) => {
-			e.preventDefault();
+        document.getElementById('form').addEventListener('submit', async (e) => {
+            e.preventDefault();
 
-			const fileInput = document.getElementById('file');
-			const files = Array.from(fileInput.files);
-			if (!files.length) {
-				alert('Please select at least one file.');
-				return;
-			}
+            const fileInput = document.getElementById('file');
+            const files = Array.from(fileInput.files);
+            if (!files.length) {
+                alert('Please select at least one file.');
+                return;
+            }
 
-			document.getElementById('loading').style.display = 'flex';
-			const progressBar = document.getElementById('progress');
-			const statusText = document.getElementById('status');
+            document.getElementById('loading').style.display = 'flex';
+            const progressBar = document.getElementById('progress');
+            const statusText = document.getElementById('status');
 
-			const zip = new JSZip();
-			let processedFiles = 0;
-			let totalFiles = files.length;
+            const zip = new JSZip();
+            let processedFiles = 0;
+            let totalFiles = files.length;
 
-			try {
-				for (const file of files) {
-					statusText.textContent = `Processing ${file.name}...`;
+            try {
+                for (const file of files) {
+                    statusText.textContent = `Processing ${file.name}...`;
 
-					if (file.type.startsWith('video/')) {
-						const optimizedVideo = await optimizeVideo(file);
-						zip.file(file.name, optimizedVideo);
-					} else if (file.type.startsWith('audio/')) {
-						const optimizedAudio = await optimizeAudio(file);
-						zip.file(file.name, optimizedAudio);
-					} else {
-						zip.file(file.name, file); // Add other file types to zip
-					}
+                    try {
+                        if (file.type.startsWith('video/')) {
+                            const optimizedVideo = await optimizeVideo(file);
+                            zip.file(file.name, optimizedVideo);
+                        } else if (file.type.startsWith('audio/')) {
+                            const optimizedAudio = await optimizeAudio(file);
+                            zip.file(file.name, optimizedAudio);
+                        } else {
+                            zip.file(file.name, file); // Add other file types to zip
+                        }
+                    } catch (fileError) {
+                        console.error(`Error processing ${file.name}:`, fileError);
+                        statusText.textContent += ` Error processing ${file.name}.`;
+                    }
 
-					processedFiles++;
-					updateProgress(processedFiles, totalFiles);
-				}
+                    processedFiles++;
+                    updateProgress(processedFiles, totalFiles);
+                }
 
-				statusText.textContent = 'Compressing files...';
-				await compressAndDownload(zip, statusText, progressBar);
-			} catch (error) {
-				alert('Optimization failed.');
-				console.error(error);
-			} finally {
-				setTimeout(() => {
-					document.getElementById('loading').style.display = 'none';
-					progressBar.style.width = '0%';
-					progressBar.textContent = '0%';
-				}, 3000);
-			}
-		});
+                statusText.textContent = 'Compressing files...';
+                await compressAndDownload(zip, statusText, progressBar);
+            } catch (error) {
+                alert('Optimization failed: ' + error.message);
+                console.error(error);
+            } finally {
+                setTimeout(() => {
+                    document.getElementById('loading').style.display = 'none';
+                    progressBar.style.width = '0%';
+                    progressBar.textContent = '0%';
+                }, 3000);
+            }
+        });
 
-		async function optimizeVideo(file) {
-			return new Promise((resolve, reject) => {
-				const reader = new FileReader();
-				reader.onload = async (e) => {
-					const { createFFmpeg, fetchFile } = FFmpeg;
-					const ffmpeg = createFFmpeg({ log: true });
+        async function optimizeVideo(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = async (e) => {
+                    const { createFFmpeg, fetchFile } = FFmpeg;
+                    const ffmpeg = createFFmpeg({ log: true });
 
-					try {
-						await ffmpeg.load();
-						ffmpeg.FS('writeFile', 'input.mp4', new Uint8Array(e.target.result));
-						await ffmpeg.run('-i', 'input.mp4', '-vf', 'scale=1280:-2', '-strict', '-2', '-c:v', 'libx265', '-crf', '23', '-preset', 'medium', '-c:a', 'libopus', '-b:a', '128k', 'output.mp4');
-						const data = ffmpeg.FS('readFile', 'output.mp4');
-						const optimizedVideo = new Blob([data.buffer], { type: 'video/mp4' });
+                    try {
+                        await ffmpeg.load();
+                        ffmpeg.FS('writeFile', 'input.mp4', new Uint8Array(e.target.result));
+                        await ffmpeg.run('-i', 'input.mp4', '-vf', 'scale=1280:-2', '-strict', '-2', '-c:v', 'libx264', '-crf', '23', '-preset', 'medium', '-c:a', 'aac', '-b:a', '128k', 'output.mp4');
+                        const data = ffmpeg.FS('readFile', 'output.mp4');
+                        const optimizedVideo = new Blob([data.buffer], { type: 'video/mp4' });
 
-						resolve(optimizedVideo);
+                        resolve(optimizedVideo);
 
-						ffmpeg.FS('unlink', 'input.mp4');
-						ffmpeg.FS('unlink', 'output.mp4');
-					} catch (error) {
-						reject(error);
-					}
-				};
+                        ffmpeg.FS('unlink', 'input.mp4');
+                        ffmpeg.FS('unlink', 'output.mp4');
+                    } catch (error) {
+                        reject(error);
+                    }
+                };
 
-				reader.onerror = reject;
-				reader.readAsArrayBuffer(file);
-			});
-		}
+                reader.onerror = reject;
+                reader.readAsArrayBuffer(file);
+            });
+        }
 
-		async function optimizeAudio(file) {
-			return new Promise((resolve, reject) => {
-				const reader = new FileReader();
-				reader.onload = async (e) => {
-					const { createFFmpeg, fetchFile } = FFmpeg;
-					const ffmpeg = createFFmpeg({ log: true });
+        async function optimizeAudio(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = async (e) => {
+                    const { createFFmpeg, fetchFile } = FFmpeg;
+                    const ffmpeg = createFFmpeg({ log: true });
 
-					try {
-						await ffmpeg.load();
-						ffmpeg.FS('writeFile', 'input.audio', new Uint8Array(e.target.result));
-						await ffmpeg.run('-i', 'input.audio', '-strict', '-2', '-c:a', 'libopus', 'output.opus');
-						const data = ffmpeg.FS('readFile', 'output.opus');
-						const optimizedAudio = new Blob([data.buffer], { type: 'audio/opus' });
+                    try {
+                        await ffmpeg.load();
+                        ffmpeg.FS('writeFile', 'input.audio', new Uint8Array(e.target.result));
+                        await ffmpeg.run('-i', 'input.audio', '-c:a', 'aac', '-b:a', '128k', 'output.m4a');
+                        const data = ffmpeg.FS('readFile', 'output.m4a');
+                        const optimizedAudio = new Blob([data.buffer], { type: 'audio/mp4' });
 
-						resolve(optimizedAudio);
+                        resolve(optimizedAudio);
 
-						ffmpeg.FS('unlink', 'input.audio');
-						ffmpeg.FS('unlink', 'output.opus');
-					} catch (error) {
-						reject(error);
-					}
-				};
+                        ffmpeg.FS('unlink', 'input.audio');
+                        ffmpeg.FS('unlink', 'output.m4a');
+                    } catch (error) {
+                        reject(error);
+                    }
+                };
 
-				reader.onerror = reject;
-				reader.readAsArrayBuffer(file);
-			});
-		}
+                reader.onerror = reject;
+                reader.readAsArrayBuffer(file);
+            });
+        }
 
-		async function compressAndDownload(zip, statusText, progressBar) {
-			const zipContent = await zip.generateAsync({
-				type: 'blob',
-				compression: 'DEFLATE',
-				compressionOptions: { level: 6 },
-			}, (metadata) => {
-				if (metadata.percent) {
-					const progress = Math.round(metadata.percent);
-					progressBar.style.width = `${progress}%`;
-					progressBar.textContent = `${progress}%`;
-				}
-			});
+        async function compressAndDownload(zip, statusText, progressBar) {
+            const zipContent = await zip.generateAsync({
+                type: 'blob',
+                compression: 'DEFLATE',
+                compressionOptions: { level: 6 },
+            }, (metadata) => {
+                if (metadata.percent) {
+                    const progress = Math.round(metadata.percent);
+                    progressBar.style.width = `${progress}%`;
+                    progressBar.textContent = `${progress}%`;
+                }
+            });
 
-			statusText.textContent = 'Finalizing...';
-			const randomString = generateRandomString(8);
-			const zipFilename = `optimized_media_${randomString}.zip`;
+            statusText.textContent = 'Finalizing...';
+            const randomString = generateRandomString(8);
+            const zipFilename = `optimized_media_${randomString}.zip`;
 
-			downloadFile(zipContent, zipFilename);
-			statusText.textContent = 'Download complete!';
-		}
+            downloadFile(zipContent, zipFilename);
+            statusText.textContent = 'Download complete!';
+        }
 
-		function downloadFile(data, filename) {
-			const url = window.URL.createObjectURL(data);
-			const a = document.createElement('a');
-			a.href = url;
-			a.download = filename;
-			document.body.appendChild(a);
-			a.click();
-			a.remove();
-		}
+        function downloadFile(data, filename) {
+            const url = window.URL.createObjectURL(data);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            window.URL.revokeObjectURL(url);
+        }
 
-		function generateRandomString(length) {
-			const chars = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
-			let result = '';
-			for (let i = 0; i < length; i++) {
-				const randomIndex = Math.floor(Math.random() * chars.length);
-				result += chars[randomIndex];
-			}
-			return result;
-		}
+        function generateRandomString(length) {
+            const chars = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
+            let result = '';
+            for (let i = 0; i < length; i++) {
+                const randomIndex = Math.floor(Math.random() * chars.length);
+                result += chars[randomIndex];
+            }
+            return result;
+        }
 
-		function updateProgress(processed, total) {
-			const progress = Math.round((processed / total) * 100);
-			const progressBar = document.getElementById('progress');
-			progressBar.style.width = `${progress}%`;
-			progressBar.textContent = `${progress}%`;
-		}
+        function updateProgress(processed, total) {
+            const progress = Math.round((processed / total) * 100);
+            const progressBar = document.getElementById('progress');
+            progressBar.style.width = `${progress}%`;
+            progressBar.textContent = `${progress}%`;
+        }
     </script>
 </body>
 </html>
