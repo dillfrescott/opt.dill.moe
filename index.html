@@ -117,16 +117,15 @@
     <script>
         document.getElementById('form').addEventListener('submit', async (e) => {
             e.preventDefault();
-        
+            
             const fileInput = document.getElementById('file');
             const folderInput = document.getElementById('folder');
-
+        
             const files = Array.from(fileInput.files);
             const folders = Array.from(folderInput.files);
-
-            // Combine files from both inputs
+        
             const allFiles = files.concat(folders);
-
+        
             if (!allFiles.length) {
                 alert('Please select at least one file or folder.');
                 return;
@@ -138,12 +137,17 @@
         
             const zip = new JSZip();
             let processedFiles = 0;
-            let totalFiles = allFiles.length;
+            const totalFiles = allFiles.length;
+        
+            // Calculate total size of all files
+            const totalSize = allFiles.reduce((sum, file) => sum + file.size, 0);
         
             const processFile = async (file, path) => {
                 console.log(`Processing file: ${path}`);
                 try {
                     statusText.textContent = `Processing ${path}...`;
+        
+                    const fileSize = file.size;
         
                     if (file.type.startsWith('video/')) {
                         const optimizedVideo = await optimizeVideo(file, updateFFmpegProgress);
@@ -159,7 +163,8 @@
                     }
         
                     processedFiles++;
-                    updateProgress(processedFiles, totalFiles);
+                    const processedSize = allFiles.slice(0, processedFiles).reduce((sum, file) => sum + file.size, 0);
+                    updateProgress(processedSize, totalSize);
                 } catch (fileError) {
                     console.error(`Error processing ${path}:`, fileError);
                     statusText.textContent += ` Error processing ${path}.`;
@@ -337,11 +342,11 @@
             return result;
         }
 
-        function updateProgress(processed, total) {
-            const progress = Math.round((processed / total) * 100);
+        function updateProgress(processedSize, totalSize) {
+            const percent = Math.round((processedSize / totalSize) * 100);
             const progressBar = document.getElementById('progress');
-            progressBar.style.width = `${progress}%`;
-            progressBar.textContent = `${progress}%`;
+            progressBar.style.width = `${percent}%`;
+            progressBar.textContent = `${percent}%`;
         }
     </script>
 </body>
