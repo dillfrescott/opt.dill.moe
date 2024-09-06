@@ -101,8 +101,10 @@
     <div id="optimize-form">
         <h1>Media Optimizer</h1>
         <form id="form">
-            <label for="file">Select Media Files or Folder to Optimize:</label>
-            <input type="file" id="file" name="file" multiple webkitdirectory required>
+            <label for="file">Select Media Files:</label>
+            <input type="file" id="file" name="file" multiple>
+            <label for="folder">Or select a Folder:</label>
+            <input type="file" id="folder" name="folder" webkitdirectory directory>
             <button type="submit">Optimize</button>
         </form>
         <div id="loading">
@@ -118,9 +120,16 @@
             e.preventDefault();
         
             const fileInput = document.getElementById('file');
+            const folderInput = document.getElementById('folder');
+
             const files = Array.from(fileInput.files);
-            if (!files.length) {
-                alert('Please select at least one file.');
+            const folders = Array.from(folderInput.files);
+
+            // Combine files from both inputs
+            const allFiles = files.concat(folders);
+
+            if (!allFiles.length) {
+                alert('Please select at least one file or folder.');
                 return;
             }
         
@@ -130,7 +139,7 @@
         
             const zip = new JSZip();
             let processedFiles = 0;
-            let totalFiles = files.length;
+            let totalFiles = allFiles.length;
         
             const processFile = async (file, path) => {
                 console.log(`Processing file: ${path}`);
@@ -159,7 +168,7 @@
             };
         
             try {
-                for (const file of files) {
+                for (const file of allFiles) {
                     const path = file.webkitRelativePath || file.name; // Use webkitRelativePath for directories
                     await processFile(file, path);
                 }
