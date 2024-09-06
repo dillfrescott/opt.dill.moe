@@ -208,7 +208,7 @@
 						ffmpeg.FS('writeFile', 'input.mp4', new Uint8Array(e.target.result));
 
 						// Use CRF for video quality
-						await ffmpeg.run('-i', 'input.mp4', '-vf', 'scale=1280:-2', '-c:v', 'libx265', '-crf', '23', '-preset', 'medium', '-c:a', 'opus', '-b:a', '128k', 'output.mp4');
+						await ffmpeg.run('-i', 'input.mp4', '-vf', 'scale=1280:-2', '-strict', '-2', '-c:v', 'libx265', '-crf', '23', '-preset', 'medium', '-c:a', 'opus', '-b:a', '128k', 'output.mp4');
 
 						// Read the optimized video file
 						const data = ffmpeg.FS('readFile', 'output.mp4');
@@ -247,7 +247,7 @@
 						ffmpeg.FS('writeFile', 'input.audio', new Uint8Array(e.target.result));
 
 						// Convert audio to opus codec
-						await ffmpeg.run('-i', 'input.audio', '-c:a', 'libopus', 'output.opus');
+						await ffmpeg.run('-i', 'input.audio', '-strict', '-2', '-c:a', 'libopus', 'output.opus');
 
 						// Read the optimized audio file
 						const data = ffmpeg.FS('readFile', 'output.opus');
