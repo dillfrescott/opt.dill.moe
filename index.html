@@ -123,6 +123,9 @@
             const statusText = document.getElementById('status');
             const ffmpegLog = document.getElementById('ffmpeg-log');
 
+            // Clear existing log
+            ffmpegLog.textContent = 'FFmpeg Logs:\n';
+
             const zip = new JSZip();
             let processedFiles = 0;
             let totalFiles = files.length;
@@ -133,10 +136,10 @@
 
                     try {
                         if (file.type.startsWith('video/')) {
-                            const optimizedVideo = await optimizeVideo(file, updateFFmpegProgress);
+                            const optimizedVideo = await optimizeVideo(file);
                             zip.file(file.name, optimizedVideo);
                         } else if (file.type.startsWith('audio/')) {
-                            const optimizedAudio = await optimizeAudio(file, updateFFmpegProgress);
+                            const optimizedAudio = await optimizeAudio(file);
                             zip.file(file.name.replace(/\.[^/.]+$/, "") + ".opus", optimizedAudio); // Ensure .opus extension
                         } else {
                             zip.file(file.name, file); // Add other file types to zip
@@ -164,20 +167,16 @@
             }
         });
 
-        async function optimizeVideo(file, progressCallback) {
+        async function optimizeVideo(file) {
             return new Promise((resolve, reject) => {
                 const reader = new FileReader();
                 reader.onload = async (e) => {
-                    const { createFFmpeg, fetchFile } = FFmpeg;
-                    const ffmpeg = createFFmpeg({ 
-                        log: true,
-                        progress: progressCallback,
-                        error: (error) => {
-                            document.getElementById('ffmpeg-log').textContent += `\n${error}`;
-                        },
-                        stderr: (data) => {
-                            document.getElementById('ffmpeg-log').textContent += `\n${data}`;
-                        }
+                    const { createFFmpeg } = FFmpeg;
+                    const ffmpeg = createFFmpeg({ log: true });
+
+                    ffmpeg.setLogger(({ type, message }) => {
+                        const log = type === 'stderr' ? `stderr: ${message}` : `stdout: ${message}`;
+                        document.getElementById('ffmpeg-log').textContent += `\n${log}`;
                     });
 
                     try {
@@ -201,20 +200,16 @@
             });
         }
 
-        async function optimizeAudio(file, progressCallback) {
+        async function optimizeAudio(file) {
             return new Promise((resolve, reject) => {
                 const reader = new FileReader();
                 reader.onload = async (e) => {
-                    const { createFFmpeg, fetchFile } = FFmpeg;
-                    const ffmpeg = createFFmpeg({ 
-                        log: true,
-                        progress: progressCallback,
-                        error: (error) => {
-                            document.getElementById('ffmpeg-log').textContent += `\n${error}`;
-                        },
-                        stderr: (data) => {
-                            document.getElementById('ffmpeg-log').textContent += `\n${data}`;
-                        }
+                    const { createFFmpeg } = FFmpeg;
+                    const ffmpeg = createFFmpeg({ log: true });
+
+                    ffmpeg.setLogger(({ type, message }) => {
+                        const log = type === 'stderr' ? `stderr: ${message}` : `stdout: ${message}`;
+                        document.getElementById('ffmpeg-log').textContent += `\n${log}`;
                     });
 
                     try {
