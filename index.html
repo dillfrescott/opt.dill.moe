@@ -211,21 +211,22 @@
             const processFile = async (file, path) => {
                 console.log(`Processing file: ${path}`);
                 try {
-                    const fileName = path.split('/').pop(); // Extract the file name
-                    const directoryPath = path.includes('/') ? path.split('/').slice(0, -1).join('/') : ''; // Get the directory path if any
+                    const pathParts = path.split('/');
+                    const fileName = pathParts.pop(); // Extract the file name
+                    const directoryPath = pathParts.join('/'); // Join the remaining parts as directory path
             
                     let finalFileName;
                     let optimizedFile;
             
-                    // Check if the filename already contains 'opt_' (anywhere in the name)
-                    if (fileName.includes('opt_')) {
+                    // Check if the file name starts with 'opt_'
+                    if (/\/opt_/.test(path)) {
                         // Skip processing and retain the original filename
                         console.log(`Skipping processing for file: ${path}`);
-                        finalFileName = path; // Use the original path and filename without modification
+                        finalFileName = `${directoryPath}/${fileName}`;
                         optimizedFile = file;
                     } else {
                         // Process the file and add 'opt_' prefix
-                        finalFileName = directoryPath ? `${directoryPath}/opt_${fileName}` : `opt_${fileName}`;
+                        finalFileName = `${directoryPath}/opt_${fileName}`;
                         statusText.textContent = `Processing ${path}...`;
             
                         if (file.type.startsWith('video/')) {
