@@ -211,17 +211,16 @@
             const processFile = async (file, path) => {
                 console.log(`Processing file: ${path}`);
                 try {
+                    const fileName = path.split('/').pop(); // Extract the file name
+            
                     // Check if the filename contains 'opt_' anywhere in the name
-                    if (path.includes('opt_')) {
-                        // Skip processing and don't modify the filename
+                    if (fileName.includes('opt_')) {
+                        // Skip processing and return the original file name
                         console.log(`Skipping processing for file: ${path}`);
                         return { fileName: path, file: file };
                     } else {
                         // Process the file and add 'opt_' prefix
-                        const pathParts = path.split('/');
-                        const fileName = pathParts.pop(); // Extract the file name
-                        const directoryPath = pathParts.join('/'); // Join the remaining parts as directory path
-                        
+                        const directoryPath = path.split('/').slice(0, -1).join('/'); // Get the directory path
                         const finalFileName = `${directoryPath}/opt_${fileName}`;
                         statusText.textContent = `Processing ${path}...`;
             
