@@ -164,6 +164,9 @@
             let processedFiles = 0;
             const totalFiles = allFiles.length;
             
+            // Initialize the file count progress bar
+            fileProgressBar.textContent = `0/${totalFiles}`;
+            
             // Calculate total size of all files
             const totalSize = allFiles.reduce((sum, file) => sum + file.size, 0);
             
