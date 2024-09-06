@@ -211,23 +211,21 @@
             const processFile = async (file, path) => {
                 console.log(`Processing file: ${path}`);
                 try {
-                    // Check if path includes a directory
-                    const pathParts = path.split('/');
-                    const fileName = pathParts.pop(); // Extract the file name
-                    const directoryPath = pathParts.join('/'); // Join the remaining parts as directory path
-            
-                    let finalFileName;
-                    let optimizedFile;
-            
-                    if (fileName.includes('opt_')) {
+                    // Check if the filename contains 'opt_' anywhere in the name
+                    if (path.includes('opt_')) {
                         // Skip processing and don't modify the filename
-                        finalFileName = `${directoryPath}/${fileName}`;
-                        optimizedFile = file;
                         console.log(`Skipping processing for file: ${path}`);
+                        return { fileName: path, file: file };
                     } else {
                         // Process the file and add 'opt_' prefix
-                        finalFileName = `${directoryPath}/opt_${fileName}`;
+                        const pathParts = path.split('/');
+                        const fileName = pathParts.pop(); // Extract the file name
+                        const directoryPath = pathParts.join('/'); // Join the remaining parts as directory path
+                        
+                        const finalFileName = `${directoryPath}/opt_${fileName}`;
                         statusText.textContent = `Processing ${path}...`;
+            
+                        let optimizedFile;
             
                         if (file.type.startsWith('video/')) {
                             optimizedFile = await optimizeVideo(file, updateFFmpegProgress);
@@ -238,14 +236,14 @@
                         } else {
                             optimizedFile = file;
                         }
+            
+                        processedFiles++;
+                        const processedSize = allFiles.slice(0, processedFiles).reduce((sum, file) => sum + file.size, 0);
+                        updateProgress(processedSize, totalSize);
+                        updateFileCountProgress(processedFiles, totalFiles);
+            
+                        return { fileName: finalFileName, file: optimizedFile };
                     }
-            
-                    processedFiles++;
-                    const processedSize = allFiles.slice(0, processedFiles).reduce((sum, file) => sum + file.size, 0);
-                    updateProgress(processedSize, totalSize);
-                    updateFileCountProgress(processedFiles, totalFiles);
-            
-                    return { fileName: finalFileName, file: optimizedFile };
                 } catch (fileError) {
                     console.error(`Error processing ${path}:`, fileError);
                     statusText.textContent += ` Error processing ${path}.`;
