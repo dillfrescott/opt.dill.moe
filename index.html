@@ -134,7 +134,7 @@
                 <div id="progress">0%</div>
             </div>
         </div>
-    <div id="file-progress-bar">
+    <div id="file-progress-bar" style="display: none;">
         <div id="file-progress">0/0</div>
     </div>
     </div>
@@ -158,14 +158,18 @@
             document.getElementById('loading').style.display = 'flex';
             const progressBar = document.getElementById('progress');
             const statusText = document.getElementById('status');
-            const fileProgressBar = document.getElementById('file-progress');
+            const fileProgressBar = document.getElementById('file-progress-bar');
+            
+            // Show file count progress bar
+            fileProgressBar.style.display = 'block';
             
             const zip = new JSZip();
             let processedFiles = 0;
             const totalFiles = allFiles.length;
             
             // Initialize the file count progress bar
-            fileProgressBar.textContent = `0/${totalFiles}`;
+            const fileProgress = document.getElementById('file-progress');
+            fileProgress.textContent = `0/${totalFiles}`;
             
             // Calculate total size of all files
             const totalSize = allFiles.reduce((sum, file) => sum + file.size, 0);
@@ -216,7 +220,8 @@
                     document.getElementById('loading').style.display = 'none';
                     progressBar.style.width = '0%';
                     progressBar.textContent = '0%';
-                    fileProgressBar.textContent = '0/0';
+                    fileProgressBar.style.display = 'none'; // Hide file count progress bar
+                    fileProgress.textContent = '0/0';
                 }, 3000);
             }
         });
