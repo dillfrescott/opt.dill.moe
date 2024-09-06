@@ -177,32 +177,30 @@
             const processFile = async (file, path) => {
                 console.log(`Processing file: ${path}`);
                 try {
-                    // Skip files that already contain 'opt_'
+                    // Determine the file name to use in the zip
+                    const finalFileName = path.includes('opt_') ? path : `opt_${path}`;
+            
                     if (path.includes('opt_')) {
-                        console.log(`Skipping already optimized file: ${path}`);
-                        processedFiles++;
-                        const processedSize = allFiles.slice(0, processedFiles).reduce((sum, file) => sum + file.size, 0);
-                        updateProgress(processedSize, totalSize);
-                        updateFileCountProgress(processedFiles, totalFiles);
-                        return;
-                    }
-            
-                    statusText.textContent = `Processing ${path}...`;
-            
-                    const fileSize = file.size;
-            
-                    let optimizedFile;
-                    if (file.type.startsWith('video/')) {
-                        optimizedFile = await optimizeVideo(file, updateFFmpegProgress);
-                        zip.file(`opt_${path}`, optimizedFile);
-                    } else if (file.type.startsWith('audio/')) {
-                        optimizedFile = await optimizeAudio(file, updateFFmpegProgress);
-                        zip.file(`opt_${path.replace(/\.[^/.]+$/, "")}.opus`, optimizedFile);
-                    } else if (file.type.startsWith('image/')) {
-                        optimizedFile = await optimizeImage(file);
-                        zip.file(`opt_${path.replace(/\.[^/.]+$/, "")}.webp`, optimizedFile);
+                        // Skip processing but still add to archive with original name
+                        zip.file(path, file);
+                        console.log(`Skipping processing for file: ${path}`);
                     } else {
-                        zip.file(`opt_${path}`, file);
+                        // Process the file and add to archive with 'opt_' prefix
+                        statusText.textContent = `Processing ${path}...`;
+            
+                        let optimizedFile;
+                        if (file.type.startsWith('video/')) {
+                            optimizedFile = await optimizeVideo(file, updateFFmpegProgress);
+                            zip.file(finalFileName, optimizedFile);
+                        } else if (file.type.startsWith('audio/')) {
+                            optimizedFile = await optimizeAudio(file, updateFFmpegProgress);
+                            zip.file(finalFileName.replace(/\.[^/.]+$/, "") + ".opus", optimizedFile);
+                        } else if (file.type.startsWith('image/')) {
+                            optimizedFile = await optimizeImage(file);
+                            zip.file(finalFileName.replace(/\.[^/.]+$/, "") + ".webp", optimizedFile);
+                        } else {
+                            zip.file(finalFileName, file);
+                        }
                     }
             
                     processedFiles++;
