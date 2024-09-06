@@ -115,6 +115,17 @@
             width: 100%;
             box-sizing: border-box;
         }
+        #notice-box {
+            background-color: #1e1e1e;
+            color: #ffffff;
+            padding: 15px;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            text-align: center;
+            margin-top: 20px;
+            width: 300px;
+            position: relative;
+        }
     </style>
 </head>
 <body>
@@ -137,6 +148,11 @@
     <div id="file-progress-bar" style="display: none;">
         <div id="file-progress">0/0</div>
     </div>
+    </div>
+    <div id="notice-box">
+        <p><strong>Note:</strong></p>
+        <p>Videos, especially longer ones, may take some time to process. Please be patient.</p>
+        <p>Files containing <code>opt_</code> in their names will be skipped by the optimization algorithm but will still be included in the final archive.</p>
     </div>
     <script>
         document.getElementById('form').addEventListener('submit', async (e) => {
