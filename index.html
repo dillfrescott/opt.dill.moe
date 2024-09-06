@@ -168,11 +168,14 @@
         document.getElementById('form').addEventListener('submit', async (e) => {
             e.preventDefault();
         
-            // Hide the form elements after submission
-            document.getElementById('optimize-form').style.display = 'none';
+            // Hide only the file inputs and optimize button
+            document.getElementById('file').style.display = 'none';
+            document.getElementById('folder').style.display = 'none';
+            e.submitter.style.display = 'none'; // Hide the clicked submit button
             
-            // Rest of your code...
-            
+            // Show the loading spinner and progress bars
+            document.getElementById('loading').style.display = 'flex';
+        
             const fileInput = document.getElementById('file');
             const folderInput = document.getElementById('folder');
             
@@ -183,12 +186,14 @@
             
             if (!allFiles.length) {
                 alert('Please select at least one file or folder.');
-                // Re-show the form if no files were selected
-                document.getElementById('optimize-form').style.display = 'block';
+                // Re-show the inputs and button if no files were selected
+                document.getElementById('file').style.display = 'block';
+                document.getElementById('folder').style.display = 'block';
+                e.submitter.style.display = 'block';
+                document.getElementById('loading').style.display = 'none'; // Hide the loading spinner
                 return;
             }
             
-            document.getElementById('loading').style.display = 'flex';
             const progressBar = document.getElementById('progress');
             const statusText = document.getElementById('status');
             const fileProgressBar = document.getElementById('file-progress-bar');
@@ -269,8 +274,10 @@
                     progressBar.textContent = '0%';
                     fileProgressBar.style.display = 'none'; // Hide file count progress bar
                     fileProgress.textContent = '0/0';
-                    // Re-show the form after the process is complete
-                    document.getElementById('optimize-form').style.display = 'block';
+                    // Re-show the inputs and button if needed
+                    document.getElementById('file').style.display = 'block';
+                    document.getElementById('folder').style.display = 'block';
+                    e.submitter.style.display = 'block';
                 }, 3000);
             }
         });
