@@ -27,7 +27,6 @@
             position: relative;
             width: 300px;
             overflow: hidden;
-            word-wrap: break-word;
         }
         label, input, button {
             display: block;
@@ -67,14 +66,16 @@
         }
         #status {
             margin-bottom: 10px;
+            word-wrap: break-word;
             text-overflow: ellipsis;
             overflow: hidden;
-            white-space: nowrap;
+            white-space: normal;
         }
         #progress-bar {
             width: 100%;
             background-color: #3700b3;
             margin-top: 10px;
+            position: relative;
         }
         #progress {
             width: 0%;
@@ -83,6 +84,9 @@
             text-align: center;
             line-height: 20px;
             color: white;
+            position: absolute;
+            top: 0;
+            left: 0;
         }
     </style>
 </head>
