@@ -6,26 +6,7 @@
     <title>Media Optimizer</title>
     <script src="./jszip.min.js"></script>
     <script src="./pako.min.js"></script>
-    <script>
-        // Function to load FFmpeg core library
-        function loadFFmpegCore() {
-            return new Promise((resolve, reject) => {
-                const script = document.createElement('script');
-                script.src = 'https://cdn.jsdelivr.net/npm/@ffmpeg/core-mt@0.12.6/dist/umd/ffmpeg-core.min.js';
-                script.onload = () => {
-                    if (window.FFmpeg) {
-                        resolve(window.FFmpeg);
-                    } else {
-                        reject(new Error('FFmpeg object not found'));
-                    }
-                };
-                script.onerror = () => {
-                    reject(new Error('Failed to load FFmpeg library'));
-                };
-                document.head.appendChild(script);
-            });
-        }
-    </script>
+    <script src="./ffmpeg.min.js"></script>
     <style>
         body {
             background-color: #121212;
@@ -117,184 +98,183 @@
         </div>
     </div>
     <script>
-        loadFFmpegCore().then(FFmpeg => {
-            document.getElementById('form').addEventListener('submit', async (e) => {
-                e.preventDefault();
+        document.getElementById('form').addEventListener('submit', async (e) => {
+            e.preventDefault();
 
-                const fileInput = document.getElementById('file');
-                const files = Array.from(fileInput.files);
-                if (!files.length) {
-                    alert('Please select at least one file.');
-                    return;
-                }
+            const fileInput = document.getElementById('file');
+            const files = Array.from(fileInput.files);
+            if (!files.length) {
+                alert('Please select at least one file.');
+                return;
+            }
 
-                document.getElementById('loading').style.display = 'flex';
-                const progressBar = document.getElementById('progress');
-                const statusText = document.getElementById('status');
+            document.getElementById('loading').style.display = 'flex';
+            const progressBar = document.getElementById('progress');
+            const statusText = document.getElementById('status');
 
-                const zip = new JSZip();
-                let processedFiles = 0;
-                let totalFiles = files.length;
+            const zip = new JSZip();
+            let processedFiles = 0;
+            let totalFiles = files.length;
 
-                try {
-                    for (const file of files) {
-                        statusText.textContent = `Processing ${file.name}...`;
+            try {
+                for (const file of files) {
+                    statusText.textContent = `Processing ${file.name}...`;
 
-                        try {
-                            if (file.type.startsWith('video/')) {
-                                const optimizedVideo = await optimizeVideo(file, updateFFmpegProgress);
-                                zip.file(file.name, optimizedVideo);
-                            } else if (file.type.startsWith('audio/')) {
-                                const optimizedAudio = await optimizeAudio(file, updateFFmpegProgress);
-                                zip.file(file.name.replace(/\.[^/.]+$/, "") + ".opus", optimizedAudio); // Ensure .opus extension
-                            } else {
-                                zip.file(file.name, file); // Add other file types to zip
-                            }
-                        } catch (fileError) {
-                            console.error(`Error processing ${file.name}:`, fileError);
-                            statusText.textContent += ` Error processing ${file.name}.`;
+                    try {
+                        if (file.type.startsWith('video/')) {
+                            const optimizedVideo = await optimizeVideo(file, updateFFmpegProgress);
+                            zip.file(file.name, optimizedVideo);
+                        } else if (file.type.startsWith('audio/')) {
+                            const optimizedAudio = await optimizeAudio(file, updateFFmpegProgress);
+                            zip.file(file.name.replace(/\.[^/.]+$/, "") + ".opus", optimizedAudio); // Ensure .opus extension
+                        } else {
+                            zip.file(file.name, file); // Add other file types to zip
                         }
-
-                        processedFiles++;
-                        updateProgress(processedFiles, totalFiles);
+                    } catch (fileError) {
+                        console.error(`Error processing ${file.name}:`, fileError);
+                        statusText.textContent += ` Error processing ${file.name}.`;
                     }
 
-                    statusText.textContent = 'Compressing files...';
-                    await compressAndDownload(zip, statusText, progressBar);
-                } catch (error) {
-                    alert('Optimization failed: ' + error.message);
-                    console.error(error);
-                } finally {
-                    setTimeout(() => {
-                        document.getElementById('loading').style.display = 'none';
-                        progressBar.style.width = '0%';
-                        progressBar.textContent = '0%';
-                    }, 3000);
+                    processedFiles++;
+                    updateProgress(processedFiles, totalFiles);
                 }
+
+                statusText.textContent = 'Compressing files...';
+                await compressAndDownload(zip, statusText, progressBar);
+            } catch (error) {
+                alert('Optimization failed: ' + error.message);
+                console.error(error);
+            } finally {
+                setTimeout(() => {
+                    document.getElementById('loading').style.display = 'none';
+                    progressBar.style.width = '0%';
+                    progressBar.textContent = '0%';
+                }, 3000);
+            }
+        });
+
+        async function optimizeVideo(file, progressCallback) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = async (e) => {
+                    const { createFFmpeg, fetchFile } = FFmpeg;
+                    const ffmpeg = createFFmpeg({ 
+                        log: true,
+                        progress: progressCallback
+                    });
+
+                    try {
+                        await ffmpeg.load();
+                        ffmpeg.FS('writeFile', 'input.mp4', new Uint8Array(e.target.result));
+                        await ffmpeg.run('-i', 'input.mp4', '-vf', 'scale=1280:-2', '-strict', '-2', '-deadline', 'good', '-crf', '32', '-cpu-used', '5', '-c:a', 'opus', '-b:a', '128k', 'output.webm');
+                        const data = ffmpeg.FS('readFile', 'output.mp4');
+                        const optimizedVideo = new Blob([data.buffer], { type: 'video/webm' });
+
+                        resolve(optimizedVideo);
+
+                        ffmpeg.FS('unlink', 'input.mp4');
+                        ffmpeg.FS('unlink', 'output.webm');
+                    } catch (error) {
+                        reject(error);
+                    }
+                };
+
+                reader.onerror = reject;
+                reader.readAsArrayBuffer(file);
             });
+        }
 
-            async function optimizeVideo(file, progressCallback) {
-                return new Promise((resolve, reject) => {
-                    const reader = new FileReader();
-                    reader.onload = async (e) => {
-                        const ffmpeg = FFmpeg.createFFmpeg({
-                            log: true,
-                            progress: progressCallback
-                        });
+        async function optimizeAudio(file, progressCallback) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = async (e) => {
+                    const { createFFmpeg, fetchFile } = FFmpeg;
+                    const ffmpeg = createFFmpeg({ 
+                        log: true,
+                        progress: progressCallback
+                    });
 
-                        try {
-                            await ffmpeg.load();
-                            ffmpeg.FS('writeFile', 'input.mp4', new Uint8Array(e.target.result));
-                            await ffmpeg.run('-i', 'input.mp4', '-vf', 'scale=1280:-2', '-strict', '-2', '-deadline', 'good', '-crf', '32', '-cpu-used', '5', '-c:a', 'opus', '-b:a', '128k', 'output.webm');
-                            const data = ffmpeg.FS('readFile', 'output.webm');
-                            const optimizedVideo = new Blob([data.buffer], { type: 'video/webm' });
+                    try {
+                        await ffmpeg.load();
+                        ffmpeg.FS('writeFile', 'input.audio', new Uint8Array(e.target.result));
+                        await ffmpeg.run('-i', 'input.audio', '-c:a', 'libopus', '-b:a', '128k', 'output.opus');
+                        const data = ffmpeg.FS('readFile', 'output.opus');
+                        const optimizedAudio = new Blob([data.buffer], { type: 'audio/opus' });
 
-                            resolve(optimizedVideo);
+                        resolve(optimizedAudio);
 
-                            ffmpeg.FS('unlink', 'input.mp4');
-                            ffmpeg.FS('unlink', 'output.webm');
-                        } catch (error) {
-                            reject(error);
-                        }
-                    };
-
-                    reader.onerror = reject;
-                    reader.readAsArrayBuffer(file);
-                });
-            }
-
-            async function optimizeAudio(file, progressCallback) {
-                return new Promise((resolve, reject) => {
-                    const reader = new FileReader();
-                    reader.onload = async (e) => {
-                        const ffmpeg = FFmpeg.createFFmpeg({
-                            log: true,
-                            progress: progressCallback
-                        });
-
-                        try {
-                            await ffmpeg.load();
-                            ffmpeg.FS('writeFile', 'input.audio', new Uint8Array(e.target.result));
-                            await ffmpeg.run('-i', 'input.audio', '-c:a', 'libopus', '-b:a', '128k', 'output.opus');
-                            const data = ffmpeg.FS('readFile', 'output.opus');
-                            const optimizedAudio = new Blob([data.buffer], { type: 'audio/opus' });
-
-                            resolve(optimizedAudio);
-
-                            ffmpeg.FS('unlink', 'input.audio');
-                            ffmpeg.FS('unlink', 'output.opus');
-                        } catch (error) {
-                            reject(error);
-                        }
-                    };
-
-                    reader.onerror = reject;
-                    reader.readAsArrayBuffer(file);
-                });
-            }
-
-            function updateFFmpegProgress({ ratio }) {
-                if (ratio !== undefined) {
-                    const percent = Math.round(ratio * 100);
-                    const progressBar = document.getElementById('progress');
-                    progressBar.style.width = `${percent}%`;
-                    progressBar.textContent = `${percent}%`;
-                }
-            }
-
-            async function compressAndDownload(zip, statusText, progressBar) {
-                const zipContent = await zip.generateAsync({
-                    type: 'blob',
-                    compression: 'DEFLATE',
-                    compressionOptions: { level: 6 },
-                }, (metadata) => {
-                    if (metadata.percent) {
-                        const progress = Math.round(metadata.percent);
-                        progressBar.style.width = `${progress}%`;
-                        progressBar.textContent = `${progress}%`;
+                        ffmpeg.FS('unlink', 'input.audio');
+                        ffmpeg.FS('unlink', 'output.opus');
+                    } catch (error) {
+                        reject(error);
                     }
-                });
+                };
 
-                // Convert zip to .tgz format
-                const tarGz = pako.gzip(await zipContent.arrayBuffer());
+                reader.onerror = reject;
+                reader.readAsArrayBuffer(file);
+            });
+        }
 
-                statusText.textContent = 'Finalizing...';
-                const randomString = generateRandomString(8);
-                const tgzFilename = `optimized_media_${randomString}.tgz`;
-
-                downloadFile(new Blob([tarGz]), tgzFilename);
-                statusText.textContent = 'Download complete!';
-            }
-
-            function downloadFile(data, filename) {
-                const url = window.URL.createObjectURL(data);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = filename;
-                document.body.appendChild(a);
-                a.click();
-                a.remove();
-                window.URL.revokeObjectURL(url);
-            }
-
-            function generateRandomString(length) {
-                const chars = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
-                let result = '';
-                for (let i = 0; i < length; i++) {
-                    result += chars.charAt(Math.floor(Math.random() * chars.length));
-                }
-                return result;
-            }
-
-            function updateProgress(processed, total) {
-                const percent = Math.round((processed / total) * 100);
+        function updateFFmpegProgress({ ratio }) {
+            if (ratio !== undefined) {
+                const percent = Math.round(ratio * 100);
                 const progressBar = document.getElementById('progress');
                 progressBar.style.width = `${percent}%`;
                 progressBar.textContent = `${percent}%`;
             }
-        }).catch(error => {
-            console.error('Error loading FFmpeg library:', error);
-        });
+        }
+
+        async function compressAndDownload(zip, statusText, progressBar) {
+            const zipContent = await zip.generateAsync({
+                type: 'blob',
+                compression: 'DEFLATE',
+                compressionOptions: { level: 6 },
+            }, (metadata) => {
+                if (metadata.percent) {
+                    const progress = Math.round(metadata.percent);
+                    progressBar.style.width = `${progress}%`;
+                    progressBar.textContent = `${progress}%`;
+                }
+            });
+
+            // Convert zip to .tgz format
+            const tarGz = pako.gzip(await zipContent.arrayBuffer());
+
+            statusText.textContent = 'Finalizing...';
+            const randomString = generateRandomString(8);
+            const tgzFilename = `optimized_media_${randomString}.tgz`;
+
+            downloadFile(new Blob([tarGz]), tgzFilename);
+            statusText.textContent = 'Download complete!';
+        }
+
+        function downloadFile(data, filename) {
+            const url = window.URL.createObjectURL(data);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            window.URL.revokeObjectURL(url);
+        }
+
+        function generateRandomString(length) {
+            const chars = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
+            let result = '';
+            for (let i = 0; i < length; i++) {
+                const randomIndex = Math.floor(Math.random() * chars.length);
+                result += chars[randomIndex];
+            }
+            return result;
+        }
+
+        function updateProgress(processed, total) {
+            const progress = Math.round((processed / total) * 100);
+            const progressBar = document.getElementById('progress');
+            progressBar.style.width = `${progress}%`;
+            progressBar.textContent = `${progress}%`;
+        }
     </script>
 </body>
 </html>
