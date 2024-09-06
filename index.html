@@ -126,7 +126,7 @@
                             zip.file(file.name, optimizedVideo);
                         } else if (file.type.startsWith('audio/')) {
                             const optimizedAudio = await optimizeAudio(file, updateFFmpegProgress);
-                            zip.file(file.name, optimizedAudio);
+                            zip.file(file.name.replace(/\.[^/.]+$/, "") + ".opus", optimizedAudio); // Ensure .opus extension
                         } else {
                             zip.file(file.name, file); // Add other file types to zip
                         }
@@ -184,36 +184,36 @@
             });
         }
 
-		async function optimizeAudio(file, progressCallback) {
-			return new Promise((resolve, reject) => {
-				const reader = new FileReader();
-				reader.onload = async (e) => {
-					const { createFFmpeg, fetchFile } = FFmpeg;
-					const ffmpeg = createFFmpeg({ 
-						log: true,
-						progress: progressCallback
-					});
+        async function optimizeAudio(file, progressCallback) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = async (e) => {
+                    const { createFFmpeg, fetchFile } = FFmpeg;
+                    const ffmpeg = createFFmpeg({ 
+                        log: true,
+                        progress: progressCallback
+                    });
 
-					try {
-						await ffmpeg.load();
-						ffmpeg.FS('writeFile', 'input.audio', new Uint8Array(e.target.result));
-						await ffmpeg.run('-i', 'input.audio', '-c:a', 'libopus', '-b:a', '96k', 'output.opus');
-						const data = ffmpeg.FS('readFile', 'output.opus');
-						const optimizedAudio = new Blob([data.buffer], { type: 'audio/opus' });
+                    try {
+                        await ffmpeg.load();
+                        ffmpeg.FS('writeFile', 'input.audio', new Uint8Array(e.target.result));
+                        await ffmpeg.run('-i', 'input.audio', '-c:a', 'libopus', '-b:a', '96k', 'output.opus');
+                        const data = ffmpeg.FS('readFile', 'output.opus');
+                        const optimizedAudio = new Blob([data.buffer], { type: 'audio/opus' });
 
-						resolve(optimizedAudio);
+                        resolve(optimizedAudio);
 
-						ffmpeg.FS('unlink', 'input.audio');
-						ffmpeg.FS('unlink', 'output.opus');
-					} catch (error) {
-						reject(error);
-					}
-				};
+                        ffmpeg.FS('unlink', 'input.audio');
+                        ffmpeg.FS('unlink', 'output.opus');
+                    } catch (error) {
+                        reject(error);
+                    }
+                };
 
-				reader.onerror = reject;
-				reader.readAsArrayBuffer(file);
-			});
-		}
+                reader.onerror = reject;
+                reader.readAsArrayBuffer(file);
+            });
+        }
 
         function updateFFmpegProgress({ ratio }) {
             if (ratio !== undefined) {
@@ -237,11 +237,14 @@
                 }
             });
 
+            // Convert zip to .tgz format
+            const tarGz = pako.gzip(await zipContent.arrayBuffer());
+
             statusText.textContent = 'Finalizing...';
             const randomString = generateRandomString(8);
-            const zipFilename = `optimized_media_${randomString}.zip`;
+            const tgzFilename = `optimized_media_${randomString}.tgz`;
 
-            downloadFile(zipContent, zipFilename);
+            downloadFile(new Blob([tarGz]), tgzFilename);
             statusText.textContent = 'Download complete!';
         }
 
