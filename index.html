@@ -444,6 +444,12 @@
             }
             return result;
         }
+        function updateProgress(processedSize, totalSize) {
+            const percent = Math.round((processedSize / totalSize) * 100);
+            const progressBar = document.getElementById('progress');
+            progressBar.style.width = `${percent}%`;
+            progressBar.textContent = `${percent}%`;
+        }
     </script>
 </body>
 </html>
