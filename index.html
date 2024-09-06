@@ -215,11 +215,13 @@
                     const fileName = pathParts.pop(); // Extract the file name
                     const directoryPath = pathParts.join('/'); // Join the remaining parts as directory path
         
+                    // Determine if file already has 'opt_' in the name
+                    const alreadyHasOptPrefix = fileName.startsWith('opt_') || fileName.includes('_opt_');
                     let finalFileName = `${directoryPath}/${fileName}`;
                     let optimizedFile = file;
         
-                    // Skip processing if filename contains 'opt_'
-                    const alreadyHasOptPrefix = fileName.startsWith('opt_') || fileName.includes('_opt_');
+                    console.log(`Filename before processing: ${fileName}`);
+                    console.log(`Already has 'opt_' prefix: ${alreadyHasOptPrefix}`);
         
                     if (!alreadyHasOptPrefix) {
                         // Process the file and add 'opt_' prefix
@@ -236,6 +238,8 @@
                     } else {
                         console.log(`Skipping processing for file: ${path}`);
                     }
+        
+                    console.log(`Filename after processing: ${finalFileName}`);
         
                     processedFiles++;
                     const processedSize = allFiles.slice(0, processedFiles).reduce((sum, file) => sum + file.size, 0);
@@ -259,6 +263,7 @@
                         // Ensure 'opt_' is only added if it's not already present
                         const fileName = result.fileName.split('/').pop(); // Get just the file name
                         const newFileName = fileName.startsWith('opt_') ? fileName : `opt_${fileName}`;
+                        console.log(`Final file name for download: ${newFileName}`);
                         downloadFile(result.file, newFileName);
                         statusText.textContent = 'Download complete!';
                     }
