@@ -19,8 +19,12 @@
             font-family: Arial, sans-serif;
         }
         #container {
-            text-align: center;
-            width: 320px; /* Adjust width as needed */
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 100%;
+            max-width: 400px; /* Limit the width of the container */
+            box-sizing: border-box; /* Include padding in width calculations */
         }
         #optimize-form {
             text-align: center;
@@ -28,8 +32,9 @@
             padding: 20px;
             border-radius: 10px;
             box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-            position: relative;
-            margin-bottom: 30px; /* Space below the main box */
+            width: 100%;
+            box-sizing: border-box;
+            margin-bottom: 20px; /* Space below the main box */
         }
         label, input, button {
             display: block;
@@ -124,9 +129,9 @@
             border-radius: 10px;
             box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
             text-align: center;
-            width: 100%; /* Full width of the container */
-            max-width: 320px; /* Ensure it doesn’t exceed the container width */
-            margin: 0 auto; /* Center the notice box */
+            width: 100%;
+            box-sizing: border-box;
+            max-width: 400px; /* Ensure the width matches the container's max-width */
         }
     </style>
 </head>
