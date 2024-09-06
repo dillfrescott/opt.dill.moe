@@ -166,7 +166,7 @@
                     try {
                         await ffmpeg.load();
                         ffmpeg.FS('writeFile', 'input.mp4', new Uint8Array(e.target.result));
-                        await ffmpeg.run('-i', 'input.mp4', '-vf', 'scale=1280:-2', '-strict', '-2', '-deadline', 'realtime', '-c:a', 'opus', '-b:a', '128k', 'output.webm');
+                        await ffmpeg.run('-i', 'input.mp4', '-vf', 'scale=1280:-2', '-strict', '-2', '-deadline', 'realtime', '-cpu-used', '6', '-c:a', 'opus', '-b:a', '128k', 'output.webm');
                         const data = ffmpeg.FS('readFile', 'output.mp4');
                         const optimizedVideo = new Blob([data.buffer], { type: 'video/webm' });
 
