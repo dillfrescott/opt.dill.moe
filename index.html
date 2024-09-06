@@ -94,6 +94,27 @@
             border-radius: 5px;
             box-sizing: border-box;
         }
+        #file-progress-bar {
+            width: 100%;
+            background-color: #3700b3;
+            margin-top: 10px;
+            padding: 3px;
+            border-radius: 5px;
+            box-sizing: border-box;
+            position: relative;
+            height: 20px;
+        }
+        
+        #file-progress {
+            color: white;
+            text-align: center;
+            line-height: 20px;
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            box-sizing: border-box;
+        }
     </style>
 </head>
 <body>
@@ -113,6 +134,9 @@
                 <div id="progress">0%</div>
             </div>
         </div>
+    <div id="file-progress-bar">
+        <div id="file-progress">0/0</div>
+    </div>
     </div>
     <script>
         document.getElementById('form').addEventListener('submit', async (e) => {
@@ -120,35 +144,36 @@
             
             const fileInput = document.getElementById('file');
             const folderInput = document.getElementById('folder');
-        
+            
             const files = Array.from(fileInput.files);
             const folders = Array.from(folderInput.files);
-        
+            
             const allFiles = files.concat(folders);
-        
+            
             if (!allFiles.length) {
                 alert('Please select at least one file or folder.');
                 return;
             }
-        
+            
             document.getElementById('loading').style.display = 'flex';
             const progressBar = document.getElementById('progress');
             const statusText = document.getElementById('status');
-        
+            const fileProgressBar = document.getElementById('file-progress');
+            
             const zip = new JSZip();
             let processedFiles = 0;
             const totalFiles = allFiles.length;
-        
+            
             // Calculate total size of all files
             const totalSize = allFiles.reduce((sum, file) => sum + file.size, 0);
-        
+            
             const processFile = async (file, path) => {
                 console.log(`Processing file: ${path}`);
                 try {
                     statusText.textContent = `Processing ${path}...`;
-        
+            
                     const fileSize = file.size;
-        
+            
                     if (file.type.startsWith('video/')) {
                         const optimizedVideo = await optimizeVideo(file, updateFFmpegProgress);
                         zip.file(path, optimizedVideo);
@@ -161,22 +186,23 @@
                     } else {
                         zip.file(path, file);
                     }
-        
+            
                     processedFiles++;
                     const processedSize = allFiles.slice(0, processedFiles).reduce((sum, file) => sum + file.size, 0);
                     updateProgress(processedSize, totalSize);
+                    updateFileCountProgress(processedFiles, totalFiles);
                 } catch (fileError) {
                     console.error(`Error processing ${path}:`, fileError);
                     statusText.textContent += ` Error processing ${path}.`;
                 }
             };
-        
+            
             try {
                 for (const file of allFiles) {
                     const path = file.webkitRelativePath || file.name; // Use webkitRelativePath for directories
                     await processFile(file, path);
                 }
-        
+            
                 statusText.textContent = 'Compressing files...';
                 await compressAndDownload(zip, statusText, progressBar);
             } catch (error) {
@@ -187,9 +213,15 @@
                     document.getElementById('loading').style.display = 'none';
                     progressBar.style.width = '0%';
                     progressBar.textContent = '0%';
+                    fileProgressBar.textContent = '0/0';
                 }, 3000);
             }
         });
+        
+        function updateFileCountProgress(processedFiles, totalFiles) {
+            const fileProgress = document.getElementById('file-progress');
+            fileProgress.textContent = `${processedFiles}/${totalFiles}`;
+        }
 
         async function optimizeVideo(file, progressCallback) {
             return new Promise((resolve, reject) => {
