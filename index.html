@@ -18,6 +18,10 @@
             margin: 0;
             font-family: Arial, sans-serif;
         }
+        #container {
+            text-align: center;
+            width: 320px; /* Adjust width as needed */
+        }
         #optimize-form {
             text-align: center;
             background-color: #1e1e1e;
@@ -25,9 +29,7 @@
             border-radius: 10px;
             box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
             position: relative;
-            width: 300px;
-            overflow: hidden;
-            margin-bottom: 30px; /* Add margin to create space below the main box */
+            margin-bottom: 30px; /* Space below the main box */
         }
         label, input, button {
             display: block;
@@ -122,36 +124,39 @@
             border-radius: 10px;
             box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
             text-align: center;
-            width: 300px;
+            width: 100%; /* Full width of the container */
+            max-width: 320px; /* Ensure it doesn’t exceed the container width */
             margin: 0 auto; /* Center the notice box */
         }
     </style>
 </head>
 <body>
-    <div id="optimize-form">
-        <h1>Media Optimizer</h1>
-        <form id="form">
-            <label for="file">Select Media Files:</label>
-            <input type="file" id="file" name="file" multiple>
-            <label for="folder">Or select a Folder:</label>
-            <input type="file" id="folder" name="folder" webkitdirectory directory>
-            <button type="submit">Optimize</button>
-        </form>
-        <div id="loading">
-            <div class="spinner"></div>
-            <span id="status">Processing...</span>
-            <div id="progress-bar">
-                <div id="progress">0%</div>
+    <div id="container">
+        <div id="optimize-form">
+            <h1>Media Optimizer</h1>
+            <form id="form">
+                <label for="file">Select Media Files:</label>
+                <input type="file" id="file" name="file" multiple>
+                <label for="folder">Or select a Folder:</label>
+                <input type="file" id="folder" name="folder" webkitdirectory directory>
+                <button type="submit">Optimize</button>
+            </form>
+            <div id="loading">
+                <div class="spinner"></div>
+                <span id="status">Processing...</span>
+                <div id="progress-bar">
+                    <div id="progress">0%</div>
+                </div>
+            </div>
+            <div id="file-progress-bar" style="display: none;">
+                <div id="file-progress">0/0</div>
             </div>
         </div>
-        <div id="file-progress-bar" style="display: none;">
-            <div id="file-progress">0/0</div>
+        <div id="notice-box">
+            <p><strong>Note:</strong></p>
+            <p>Videos, especially longer ones, may take some time to process. Please be patient.</p>
+            <p>Files containing <code>opt_</code> in their names will be skipped by the optimization algorithm but will still be included in the final archive.</p>
         </div>
-    </div>
-    <div id="notice-box">
-        <p><strong>Note:</strong></p>
-        <p>Videos, especially longer ones, may take some time to process. Please be patient.</p>
-        <p>Files containing <code>opt_</code> in their names will be skipped by the optimization algorithm but will still be included in the final archive.</p>
     </div>
     <script>
         document.getElementById('form').addEventListener('submit', async (e) => {
