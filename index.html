@@ -214,14 +214,14 @@
                     const pathParts = path.split('/');
                     const fileName = pathParts.pop(); // Extract the file name
                     const directoryPath = pathParts.join('/'); // Join the remaining parts as directory path
-            
-                    // Check if the file name contains 'opt_' anywhere
-                    const shouldSkip = fileName.includes('opt_');
-            
+        
                     let finalFileName;
                     let optimizedFile;
-            
-                    if (shouldSkip) {
+        
+                    // Check if the file name already contains 'opt_'
+                    const alreadyHasOptPrefix = fileName.startsWith('opt_') || fileName.includes('_opt_');
+        
+                    if (alreadyHasOptPrefix) {
                         // Skip processing and retain the original filename
                         console.log(`Skipping processing for file: ${path}`);
                         finalFileName = path; // Keep the original path and filename
@@ -230,7 +230,7 @@
                         // Process the file and add 'opt_' prefix
                         finalFileName = `${directoryPath}/opt_${fileName}`;
                         statusText.textContent = `Processing ${path}...`;
-            
+        
                         if (file.type.startsWith('video/')) {
                             optimizedFile = await optimizeVideo(file, updateFFmpegProgress);
                         } else if (file.type.startsWith('audio/')) {
@@ -241,12 +241,12 @@
                             optimizedFile = file;
                         }
                     }
-            
+        
                     processedFiles++;
                     const processedSize = allFiles.slice(0, processedFiles).reduce((sum, file) => sum + file.size, 0);
                     updateProgress(processedSize, totalSize);
                     updateFileCountProgress(processedFiles, totalFiles);
-            
+        
                     return { fileName: finalFileName, file: optimizedFile };
                 } catch (fileError) {
                     console.error(`Error processing ${path}:`, fileError);
@@ -254,16 +254,16 @@
                     return null;
                 }
             };
-            
+        
             try {
                 if (allFiles.length === 1) {
                     // Process single file
                     const result = await processFile(allFiles[0], allFiles[0].name);
                     if (result) {
                         statusText.textContent = 'Downloading optimized file...';
-                        // Modify the file name for single files
                         const fileName = result.fileName.split('/').pop(); // Get just the file name
-                        const newFileName = fileName.startsWith('opt_') ? fileName : `opt_${fileName}`; // Add 'opt_' prefix if not already present
+                        // Ensure 'opt_' is only added if it's not already present
+                        const newFileName = fileName.startsWith('opt_') ? fileName : `opt_${fileName}`;
                         downloadFile(result.file, newFileName);
                         statusText.textContent = 'Download complete!';
                     }
