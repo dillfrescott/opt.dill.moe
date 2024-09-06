@@ -165,7 +165,7 @@
         </div>
     </div>
     <script>
-       document.getElementById('form').addEventListener('submit', async (e) => {
+        document.getElementById('form').addEventListener('submit', async (e) => {
             e.preventDefault();
         
             // Hide the form inputs and button
@@ -257,7 +257,10 @@
                     const result = await processFile(allFiles[0], allFiles[0].name);
                     if (result) {
                         statusText.textContent = 'Downloading optimized file...';
-                        downloadFile(result.file, result.fileName);
+                        // Modify the file name for single files
+                        const fileName = result.fileName.split('/').pop(); // Get just the file name
+                        const newFileName = fileName.startsWith('opt_') ? fileName : `opt_${fileName}`; // Add 'opt_' prefix if not already present
+                        downloadFile(result.file, newFileName);
                         statusText.textContent = 'Download complete!';
                     }
                 } else {
