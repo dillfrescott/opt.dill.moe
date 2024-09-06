@@ -85,8 +85,8 @@
     <div id="optimize-form">
         <h1>Media Optimizer</h1>
         <form id="form">
-            <label for="file">Select Media Files to Optimize:</label>
-            <input type="file" id="file" name="file" multiple required>
+            <label for="file">Select Media Files or Folder to Optimize:</label>
+            <input type="file" id="file" name="file" multiple webkitdirectory required>
             <button type="submit">Optimize</button>
         </form>
         <div id="loading">
@@ -144,7 +144,7 @@
         
             try {
                 for (const file of files) {
-                    const path = file.name;
+                    const path = file.webkitRelativePath || file.name; // Use webkitRelativePath for directories
                     await processFile(file, path);
                 }
         
