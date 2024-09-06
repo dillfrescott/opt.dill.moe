@@ -127,6 +127,9 @@
                         } else if (file.type.startsWith('audio/')) {
                             const optimizedAudio = await optimizeAudio(file, updateFFmpegProgress);
                             zip.file(file.name.replace(/\.[^/.]+$/, "") + ".opus", optimizedAudio); // Ensure .opus extension
+                        } else if (file.type.startsWith('image/')) {
+                            const optimizedImage = await optimizeImage(file);
+                            zip.file(file.name.replace(/\.[^/.]+$/, "") + ".webp", optimizedImage); // Convert images to .webp
                         } else {
                             zip.file(file.name, file); // Add other file types to zip
                         }
@@ -167,7 +170,7 @@
                         await ffmpeg.load();
                         ffmpeg.FS('writeFile', 'input.mp4', new Uint8Array(e.target.result));
                         await ffmpeg.run('-i', 'input.mp4', '-vf', 'scale=1280:-2', '-strict', '-2', '-deadline', 'good', '-crf', '32', '-cpu-used', '5', '-c:a', 'opus', '-b:a', '128k', 'output.webm');
-                        const data = ffmpeg.FS('readFile', 'output.mp4');
+                        const data = ffmpeg.FS('readFile', 'output.webm');
                         const optimizedVideo = new Blob([data.buffer], { type: 'video/webm' });
 
                         resolve(optimizedVideo);
@@ -212,6 +215,39 @@
 
                 reader.onerror = reject;
                 reader.readAsArrayBuffer(file);
+            });
+        }
+
+        async function optimizeImage(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    const img = new Image();
+                    img.onload = () => {
+                        const canvas = document.createElement('canvas');
+                        const ctx = canvas.getContext('2d');
+
+                        // Set canvas size to image size
+                        canvas.width = img.width;
+                        canvas.height = img.height;
+
+                        // Draw image on canvas
+                        ctx.drawImage(img, 0, 0);
+
+                        // Convert image to WebP format and compress
+                        canvas.toBlob((blob) => {
+                            if (blob) {
+                                resolve(blob);
+                            } else {
+                                reject(new Error('Failed to convert image to WebP.'));
+                            }
+                        }, 'image/webp', 0.8); // Adjust quality as needed
+                    };
+                    img.onerror = reject;
+                    img.src = e.target.result;
+                };
+                reader.onerror = reject;
+                reader.readAsDataURL(file);
             });
         }
 
