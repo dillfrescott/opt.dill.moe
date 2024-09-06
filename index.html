@@ -215,18 +215,13 @@
                     const fileName = pathParts.pop(); // Extract the file name
                     const directoryPath = pathParts.join('/'); // Join the remaining parts as directory path
         
-                    let finalFileName;
-                    let optimizedFile;
+                    let finalFileName = `${directoryPath}/${fileName}`;
+                    let optimizedFile = file;
         
-                    // Check if the file name already contains 'opt_'
+                    // Skip processing if filename contains 'opt_'
                     const alreadyHasOptPrefix = fileName.startsWith('opt_') || fileName.includes('_opt_');
         
-                    if (alreadyHasOptPrefix) {
-                        // Skip processing and retain the original filename
-                        console.log(`Skipping processing for file: ${path}`);
-                        finalFileName = path; // Keep the original path and filename
-                        optimizedFile = file;
-                    } else {
+                    if (!alreadyHasOptPrefix) {
                         // Process the file and add 'opt_' prefix
                         finalFileName = `${directoryPath}/opt_${fileName}`;
                         statusText.textContent = `Processing ${path}...`;
@@ -237,9 +232,9 @@
                             optimizedFile = await optimizeAudio(file, updateFFmpegProgress);
                         } else if (file.type.startsWith('image/')) {
                             optimizedFile = await optimizeImage(file);
-                        } else {
-                            optimizedFile = file;
                         }
+                    } else {
+                        console.log(`Skipping processing for file: ${path}`);
                     }
         
                     processedFiles++;
@@ -261,8 +256,8 @@
                     const result = await processFile(allFiles[0], allFiles[0].name);
                     if (result) {
                         statusText.textContent = 'Downloading optimized file...';
-                        const fileName = result.fileName.split('/').pop(); // Get just the file name
                         // Ensure 'opt_' is only added if it's not already present
+                        const fileName = result.fileName.split('/').pop(); // Get just the file name
                         const newFileName = fileName.startsWith('opt_') ? fileName : `opt_${fileName}`;
                         downloadFile(result.file, newFileName);
                         statusText.textContent = 'Download complete!';
