@@ -218,11 +218,11 @@
                     let finalFileName;
                     let optimizedFile;
             
-                    // Check if the file name contains 'opt_' (but not at the start)
-                    if (fileName.includes('opt_')) {
+                    // Check if the file name starts with 'opt_' or contains 'opt_' anywhere in the name
+                    if (fileName.startsWith('opt_') || fileName.includes('opt_')) {
                         // Skip processing and retain the original filename
                         console.log(`Skipping processing for file: ${path}`);
-                        finalFileName = `${directoryPath}/${fileName}`;
+                        finalFileName = path; // Use the original path and filename without modification
                         optimizedFile = file;
                     } else {
                         // Process the file and add 'opt_' prefix
