@@ -280,7 +280,9 @@
             });
 
             // Convert zip to .tgz format
-            const tarGz = pako.gzip(await zipContent.arrayBuffer());
+            const zipArrayBuffer = await zipContent.arrayBuffer();
+            const tar = new Uint8Array(zipArrayBuffer);
+            const tarGz = pako.gzip(tar);
 
             statusText.textContent = 'Finalizing...';
             const randomString = generateRandomString(8);
