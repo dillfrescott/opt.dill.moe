@@ -142,38 +142,11 @@
                 }
             };
         
-            const processDirectory = async (entries, rootPath) => {
-                console.log(`Processing directory: ${rootPath}`);
-                for (const entry of entries) {
-                    if (entry.isFile) {
-                        const file = await new Promise((resolve, reject) => {
-                            entry.file(resolve, reject);
-                        });
-                        await processFile(file, rootPath + entry.name);
-                    } else if (entry.isDirectory) {
-                        const reader = entry.createReader();
-                        const entries = await new Promise((resolve, reject) => {
-                            reader.readEntries(resolve, reject);
-                        });
-                        await processDirectory(entries, rootPath + entry.name + '/');
-                    }
-                }
-            };
-        
             try {
-                const directoryEntries = files.map(file => {
-                    return new Promise((resolve) => {
-                        const entry = {
-                            name: file.webkitRelativePath || file.name,
-                            isFile: true,
-                            file: () => Promise.resolve(file),
-                        };
-                        resolve(entry);
-                    });
-                });
-        
-                const entries = await Promise.all(directoryEntries);
-                await processDirectory(entries, '');
+                for (const file of files) {
+                    const path = file.name;
+                    await processFile(file, path);
+                }
         
                 statusText.textContent = 'Compressing files...';
                 await compressAndDownload(zip, statusText, progressBar);
