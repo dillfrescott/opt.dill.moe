@@ -215,19 +215,20 @@
                     const pathParts = path.split('/');
                     const fileName = pathParts.pop(); // Extract the file name
                     const directoryPath = pathParts.join('/'); // Join the remaining parts as directory path
-        
-                    // Only rename the file, not the directory
-                    const finalFileName = fileName.includes('opt_') ? `${directoryPath}/${fileName}` : `${directoryPath}/opt_${fileName}`;
-        
+            
+                    let finalFileName;
                     let optimizedFile;
+            
                     if (fileName.includes('opt_')) {
-                        // Skip processing but still return the original file
+                        // Skip processing and don't modify the filename
+                        finalFileName = `${directoryPath}/${fileName}`;
                         optimizedFile = file;
                         console.log(`Skipping processing for file: ${path}`);
                     } else {
-                        // Process the file
+                        // Process the file and add 'opt_' prefix
+                        finalFileName = `${directoryPath}/opt_${fileName}`;
                         statusText.textContent = `Processing ${path}...`;
-        
+            
                         if (file.type.startsWith('video/')) {
                             optimizedFile = await optimizeVideo(file, updateFFmpegProgress);
                         } else if (file.type.startsWith('audio/')) {
@@ -238,12 +239,12 @@
                             optimizedFile = file;
                         }
                     }
-        
+            
                     processedFiles++;
                     const processedSize = allFiles.slice(0, processedFiles).reduce((sum, file) => sum + file.size, 0);
                     updateProgress(processedSize, totalSize);
                     updateFileCountProgress(processedFiles, totalFiles);
-        
+            
                     return { fileName: finalFileName, file: optimizedFile };
                 } catch (fileError) {
                     console.error(`Error processing ${path}:`, fileError);
@@ -251,7 +252,7 @@
                     return null;
                 }
             };
-        
+            
             try {
                 if (allFiles.length === 1) {
                     // Process single file
