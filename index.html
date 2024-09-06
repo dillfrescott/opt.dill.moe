@@ -8,7 +8,7 @@
     <script src="./pako.min.js"></script>
     <script src="./ffmpeg.min.js"></script>
     <style>
-        body {
+         body {
             background-color: #121212;
             color: #ffffff;
             display: flex;
@@ -67,15 +67,20 @@
         #status {
             margin-bottom: 10px;
             word-wrap: break-word;
+            overflow-wrap: break-word;
             text-overflow: ellipsis;
             overflow: hidden;
             white-space: normal;
+            display: block; /* Ensure block display to handle wrapping */
         }
         #progress-bar {
             width: 100%;
             background-color: #3700b3;
             margin-top: 10px;
             position: relative;
+            padding: 3px;
+            box-sizing: border-box;
+            border-radius: 5px;
         }
         #progress {
             width: 0%;
@@ -87,6 +92,8 @@
             position: absolute;
             top: 0;
             left: 0;
+            border-radius: 5px;
+            box-sizing: border-box;
         }
     </style>
 </head>
