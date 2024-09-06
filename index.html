@@ -79,15 +79,6 @@
             line-height: 20px;
             color: white;
         }
-        #ffmpeg-log {
-            background-color: #1e1e1e;
-            color: #ffffff;
-            border-radius: 5px;
-            padding: 10px;
-            margin-top: 10px;
-            white-space: pre-wrap; /* Preserve formatting */
-            overflow-x: auto; /* Horizontal scrolling */
-        }
     </style>
 </head>
 <body>
@@ -104,7 +95,6 @@
             <div id="progress-bar">
                 <div id="progress">0%</div>
             </div>
-            <pre id="ffmpeg-log">FFmpeg Logs:</pre> <!-- FFmpeg log display -->
         </div>
     </div>
     <script>
@@ -121,10 +111,6 @@
             document.getElementById('loading').style.display = 'flex';
             const progressBar = document.getElementById('progress');
             const statusText = document.getElementById('status');
-            const ffmpegLog = document.getElementById('ffmpeg-log');
-
-            // Clear existing log
-            ffmpegLog.textContent = 'FFmpeg Logs:\n';
 
             const zip = new JSZip();
             let processedFiles = 0;
@@ -136,10 +122,10 @@
 
                     try {
                         if (file.type.startsWith('video/')) {
-                            const optimizedVideo = await optimizeVideo(file);
+                            const optimizedVideo = await optimizeVideo(file, updateFFmpegProgress);
                             zip.file(file.name, optimizedVideo);
                         } else if (file.type.startsWith('audio/')) {
-                            const optimizedAudio = await optimizeAudio(file);
+                            const optimizedAudio = await optimizeAudio(file, updateFFmpegProgress);
                             zip.file(file.name.replace(/\.[^/.]+$/, "") + ".opus", optimizedAudio); // Ensure .opus extension
                         } else {
                             zip.file(file.name, file); // Add other file types to zip
@@ -167,16 +153,14 @@
             }
         });
 
-        async function optimizeVideo(file) {
+        async function optimizeVideo(file, progressCallback) {
             return new Promise((resolve, reject) => {
                 const reader = new FileReader();
                 reader.onload = async (e) => {
-                    const { createFFmpeg } = FFmpeg;
-                    const ffmpeg = createFFmpeg({ log: true });
-
-                    ffmpeg.setLogger(({ type, message }) => {
-                        const log = type === 'stderr' ? `stderr: ${message}` : `stdout: ${message}`;
-                        document.getElementById('ffmpeg-log').textContent += `\n${log}`;
+                    const { createFFmpeg, fetchFile } = FFmpeg;
+                    const ffmpeg = createFFmpeg({ 
+                        log: true,
+                        progress: progressCallback
                     });
 
                     try {
@@ -200,16 +184,14 @@
             });
         }
 
-        async function optimizeAudio(file) {
+        async function optimizeAudio(file, progressCallback) {
             return new Promise((resolve, reject) => {
                 const reader = new FileReader();
                 reader.onload = async (e) => {
-                    const { createFFmpeg } = FFmpeg;
-                    const ffmpeg = createFFmpeg({ log: true });
-
-                    ffmpeg.setLogger(({ type, message }) => {
-                        const log = type === 'stderr' ? `stderr: ${message}` : `stdout: ${message}`;
-                        document.getElementById('ffmpeg-log').textContent += `\n${log}`;
+                    const { createFFmpeg, fetchFile } = FFmpeg;
+                    const ffmpeg = createFFmpeg({ 
+                        log: true,
+                        progress: progressCallback
                     });
 
                     try {
