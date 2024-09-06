@@ -215,13 +215,13 @@
             
                     // Check if the filename contains 'opt_' anywhere in the name
                     if (fileName.includes('opt_')) {
-                        // Skip processing and return the original file name
+                        // Skip processing and return the original file name and path
                         console.log(`Skipping processing for file: ${path}`);
                         return { fileName: path, file: file };
                     } else {
                         // Process the file and add 'opt_' prefix
-                        const directoryPath = path.split('/').slice(0, -1).join('/'); // Get the directory path
-                        const finalFileName = `${directoryPath}/opt_${fileName}`;
+                        const directoryPath = path.includes('/') ? path.split('/').slice(0, -1).join('/') : ''; // Get the directory path if any
+                        const finalFileName = directoryPath ? `${directoryPath}/opt_${fileName}` : `opt_${fileName}`;
                         statusText.textContent = `Processing ${path}...`;
             
                         let optimizedFile;
