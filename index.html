@@ -98,57 +98,56 @@
         </div>
     </div>
     <script>
-        document.getElementById('form').addEventListener('submit', async (e) => {
-            e.preventDefault();
+		document.getElementById('form').addEventListener('submit', async (e) => {
+			e.preventDefault();
 
-            const fileInput = document.getElementById('file');
-            const files = Array.from(fileInput.files);
-            if (!files.length) {
-                alert('Please select at least one file.');
-                return;
-            }
+			const fileInput = document.getElementById('file');
+			const files = Array.from(fileInput.files);
+			if (!files.length) {
+				alert('Please select at least one file.');
+				return;
+			}
 
-            document.getElementById('loading').style.display = 'flex';
-            const progressBar = document.getElementById('progress');
-            const statusText = document.getElementById('status');
+			document.getElementById('loading').style.display = 'flex';
+			const progressBar = document.getElementById('progress');
+			const statusText = document.getElementById('status');
 
-            const zip = new JSZip();
-            let processedFiles = 0;
-            let totalFiles = files.length;
-            let totalSize = files.reduce((acc, file) => acc + file.size, 0);
-            let processedSize = 0;
+			const zip = new JSZip();
+			let processedFiles = 0;
+			let totalFiles = files.length;
 
-            try {
-                for (const file of files) {
-                    statusText.textContent = `Processing ${file.name}...`;
+			try {
+				for (const file of files) {
+					statusText.textContent = `Processing ${file.name}...`;
 
-                    if (file.type.startsWith('image/')) {
-                        const optimizedImage = await optimizeImage(file);
-                        zip.file(file.name, optimizedImage);
-                    } else if (file.type.startsWith('video/')) {
-                        const optimizedVideo = await optimizeVideo(file);
-                        zip.file(file.name, optimizedVideo);
-                    } else {
-                        zip.file(file.name, file); // If it's neither image nor video, just add it to zip
-                    }
+					if (file.type.startsWith('video/')) {
+						const optimizedVideo = await optimizeVideo(file);
+						zip.file(file.name, optimizedVideo);
+					} else if (file.type.startsWith('audio/')) {
+						const optimizedAudio = await optimizeAudio(file);
+						zip.file(file.name, optimizedAudio);
+					} else {
+						zip.file(file.name, file); // Add other file types to zip
+					}
 
-                    processedFiles++;
-                    updateProgress(processedFiles, totalFiles);
-                }
+					processedFiles++;
+					updateProgress(processedFiles, totalFiles);
+				}
 
-                statusText.textContent = 'Compressing files...';
-                await compressAndDownload(zip, statusText, progressBar);
-            } catch (error) {
-                alert('Optimization failed.');
-                console.error(error);
-            } finally {
-                setTimeout(() => {
-                    document.getElementById('loading').style.display = 'none';
-                    progressBar.style.width = '0%';
-                    progressBar.textContent = '0%';
-                }, 3000);
-            }
-        });
+				statusText.textContent = 'Compressing files...';
+				await compressAndDownload(zip, statusText, progressBar);
+			} catch (error) {
+				alert('Optimization failed.');
+				console.error(error);
+			} finally {
+				setTimeout(() => {
+					document.getElementById('loading').style.display = 'none';
+					progressBar.style.width = '0%';
+					progressBar.textContent = '0%';
+				}, 3000);
+			}
+		});
+
 
         // Image optimization using Canvas
         async function optimizeImage(file) {
@@ -208,10 +207,10 @@
 						// Write the file to the virtual filesystem
 						ffmpeg.FS('writeFile', 'input.mp4', await fetchFile(file));
 
-						// Run the ffmpeg command to optimize the video
-						await ffmpeg.run('-i', 'input.mp4', '-b:v', '1000k', '-vf', 'scale=1280:-1', 'output.mp4');
+						// Convert video to H.265 (HEVC) and audio to Opus codec
+						await ffmpeg.run('-i', 'input.mp4', '-vf', 'scale=1280:-2', '-c:v', 'libx265', '-b:v', '1000k', '-c:a', 'libopus', '-b:a', '128k', 'output.mp4');
 
-						// Read the optimized video
+						// Read the optimized video with H.265 and Opus audio
 						const data = ffmpeg.FS('readFile', 'output.mp4');
 
 						// Create a Blob from the output file
@@ -223,6 +222,45 @@
 						// Clean up the file system
 						ffmpeg.FS('unlink', 'input.mp4');
 						ffmpeg.FS('unlink', 'output.mp4');
+					} catch (error) {
+						reject(error);
+					}
+				};
+
+				reader.onerror = reject;
+				reader.readAsArrayBuffer(file);
+			});
+		}
+
+		async function optimizeAudio(file) {
+			return new Promise(async (resolve, reject) => {
+				const reader = new FileReader();
+				reader.onload = async (e) => {
+					const { createFFmpeg, fetchFile } = FFmpeg;
+					const ffmpeg = createFFmpeg({ log: true });
+
+					try {
+						// Load ffmpeg.js core
+						await ffmpeg.load();
+
+						// Write the file to the virtual filesystem
+						ffmpeg.FS('writeFile', 'input.audio', await fetchFile(file));
+
+						// Convert audio to Opus codec
+						await ffmpeg.run('-i', 'input.audio', '-c:a', 'libopus', '-b:a', '128k', 'output.opus');
+
+						// Read the optimized audio file
+						const data = ffmpeg.FS('readFile', 'output.opus');
+
+						// Create a Blob from the output file
+						const optimizedAudio = new Blob([data.buffer], { type: 'audio/opus' });
+
+						// Resolve the promise with the optimized audio
+						resolve(optimizedAudio);
+
+						// Clean up the file system
+						ffmpeg.FS('unlink', 'input.audio');
+						ffmpeg.FS('unlink', 'output.opus');
 					} catch (error) {
 						reject(error);
 					}
