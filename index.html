@@ -177,19 +177,30 @@
             const processFile = async (file, path) => {
                 console.log(`Processing file: ${path}`);
                 try {
+                    // Skip files that are already optimized
+                    if (path.startsWith('opt_')) {
+                        console.log(`Skipping already optimized file: ${path}`);
+                        processedFiles++;
+                        const processedSize = allFiles.slice(0, processedFiles).reduce((sum, file) => sum + file.size, 0);
+                        updateProgress(processedSize, totalSize);
+                        updateFileCountProgress(processedFiles, totalFiles);
+                        return;
+                    }
+            
                     statusText.textContent = `Processing ${path}...`;
             
                     const fileSize = file.size;
             
+                    let optimizedFile;
                     if (file.type.startsWith('video/')) {
-                        const optimizedVideo = await optimizeVideo(file, updateFFmpegProgress);
-                        zip.file(path, optimizedVideo);
+                        optimizedFile = await optimizeVideo(file, updateFFmpegProgress);
+                        zip.file(`opt_${path}`, optimizedFile);
                     } else if (file.type.startsWith('audio/')) {
-                        const optimizedAudio = await optimizeAudio(file, updateFFmpegProgress);
-                        zip.file(path.replace(/\.[^/.]+$/, "") + ".opus", optimizedAudio);
+                        optimizedFile = await optimizeAudio(file, updateFFmpegProgress);
+                        zip.file(`opt_${path.replace(/\.[^/.]+$/, "")}.opus`, optimizedFile);
                     } else if (file.type.startsWith('image/')) {
-                        const optimizedImage = await optimizeImage(file);
-                        zip.file(path.replace(/\.[^/.]+$/, "") + ".webp", optimizedImage);
+                        optimizedFile = await optimizeImage(file);
+                        zip.file(`opt_${path.replace(/\.[^/.]+$/, "")}.webp`, optimizedFile);
                     } else {
                         zip.file(path, file);
                     }
