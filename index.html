@@ -111,6 +111,7 @@
             document.getElementById('loading').style.display = 'flex';
             const progressBar = document.getElementById('progress');
             const statusText = document.getElementById('status');
+            const ffmpegLog = document.getElementById('ffmpeg-log');
 
             const zip = new JSZip();
             let processedFiles = 0;
@@ -160,7 +161,13 @@
                     const { createFFmpeg, fetchFile } = FFmpeg;
                     const ffmpeg = createFFmpeg({ 
                         log: true,
-                        progress: progressCallback
+                        progress: progressCallback,
+                        error: (error) => {
+                            document.getElementById('ffmpeg-log').textContent += `\n${error}`;
+                        },
+                        stderr: (data) => {
+                            document.getElementById('ffmpeg-log').textContent += `\n${data}`;
+                        }
                     });
 
                     try {
@@ -191,7 +198,13 @@
                     const { createFFmpeg, fetchFile } = FFmpeg;
                     const ffmpeg = createFFmpeg({ 
                         log: true,
-                        progress: progressCallback
+                        progress: progressCallback,
+                        error: (error) => {
+                            document.getElementById('ffmpeg-log').textContent += `\n${error}`;
+                        },
+                        stderr: (data) => {
+                            document.getElementById('ffmpeg-log').textContent += `\n${data}`;
+                        }
                     });
 
                     try {
