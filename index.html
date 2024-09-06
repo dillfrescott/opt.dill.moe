@@ -166,131 +166,132 @@
         </div>
     </div>
     <script>
-        document.getElementById('form').addEventListener('submit', async (e) => {
-            e.preventDefault();
-        
-            // Hide the form inputs and button
-            document.querySelector('#form').style.display = 'none';
-        
-            // Show the loading spinner and progress bars
-            document.getElementById('loading').style.display = 'flex';
-        
-            const fileInput = document.getElementById('file');
-            const folderInput = document.getElementById('folder');
-        
-            const files = Array.from(fileInput.files);
-            const folders = Array.from(folderInput.files);
-        
-            const allFiles = files.concat(folders);
-        
-            if (!allFiles.length) {
-                alert('Please select at least one file or folder.');
-                // Re-show the form if no files were selected
-                document.querySelector('#form').style.display = 'block';
-                document.getElementById('loading').style.display = 'none';
-                return;
-            }
-        
-            const progressBar = document.getElementById('progress');
-            const statusText = document.getElementById('status');
-            const fileProgressBar = document.getElementById('file-progress-bar');
-        
-            // Show file count progress bar
-            fileProgressBar.style.display = 'block';
-        
-            let processedFiles = 0;
-            const totalFiles = allFiles.length;
-        
-            // Initialize the file count progress bar
-            const fileProgress = document.getElementById('file-progress');
-            fileProgress.textContent = `0/${totalFiles}`;
-        
-            // Calculate total size of all files
-            const totalSize = allFiles.reduce((sum, file) => sum + file.size, 0);
-        
-            const processFile = async (file, path) => {
-                console.log(`Processing file: ${path}`);
-                try {
-                    const pathParts = path.split('/');
-                    const fileName = pathParts.pop(); // Extract the file name
-                    const directoryPath = pathParts.join('/'); // Join the remaining parts as directory path
-        
-                    // Check if file already has 'opt_' in the name
-                    const alreadyHasOptPrefix = fileName.startsWith('opt_') || fileName.includes('_opt_');
-                    let finalFileName = fileName;
-                    let optimizedFile = file;
-        
-                    if (!alreadyHasOptPrefix) {
-                        // Process the file and add 'opt_' prefix
-                        finalFileName = `opt_${fileName}`;
-                        statusText.textContent = `Processing ${path}...`;
-        
-                        if (file.type.startsWith('video/')) {
-                            optimizedFile = await optimizeVideo(file, updateFFmpegProgress);
-                        } else if (file.type.startsWith('audio/')) {
-                            optimizedFile = await optimizeAudio(file, updateFFmpegProgress);
-                        } else if (file.type.startsWith('image/')) {
-                            optimizedFile = await optimizeImage(file);
-                        }
-                    } else {
-                        console.log(`Skipping processing for file: ${path}`);
-                    }
-        
-                    finalFileName = `${directoryPath}/${finalFileName}`;
-        
-                    processedFiles++;
-                    const processedSize = allFiles.slice(0, processedFiles).reduce((sum, file) => sum + file.size, 0);
-                    updateProgress(processedSize, totalSize);
-                    updateFileCountProgress(processedFiles, totalFiles);
-        
-                    return { fileName: finalFileName, file: optimizedFile };
-                } catch (fileError) {
-                    console.error(`Error processing ${path}:`, fileError);
-                    statusText.textContent += ` Error processing ${path}.`;
-                    return null;
-                }
-            };
-        
-            try {
-                if (allFiles.length === 1) {
-                    // Process single file
-                    const result = await processFile(allFiles[0], allFiles[0].name);
-                    if (result) {
-                        statusText.textContent = 'Downloading optimized file...';
-                        // Ensure 'opt_' is only added if it's not already present
-                        const fileName = result.fileName.split('/').pop(); // Get just the file name
-                        console.log(`Final file name for download: ${fileName}`);
-                        downloadFile(result.file, fileName);
-                        statusText.textContent = 'Download complete!';
-                    }
-                } else {
-                    // Process multiple files
-                    const zip = new JSZip();
-                    for (const file of allFiles) {
-                        const path = file.webkitRelativePath || file.name;
-                        const result = await processFile(file, path);
-                        if (result) {
-                            zip.file(result.fileName, result.file);
-                        }
-                    }
-                    statusText.textContent = 'Compressing files...';
-                    await compressAndDownload(zip, statusText, progressBar);
-                }
-            } catch (error) {
-                alert('Optimization failed: ' + error.message);
-                console.error(error);
-            } finally {
-                setTimeout(() => {
-                    document.getElementById('loading').style.display = 'none';
-                    progressBar.style.width = '0%';
-                    progressBar.textContent = '0%';
-                    fileProgressBar.style.display = 'none';
-                    fileProgress.textContent = '0/0';
-                    // Re-show the form if needed
-                    document.querySelector('#form').style.display = 'block';
-                }, 3000);
-            }
-        });
+		document.getElementById('form').addEventListener('submit', async (e) => {
+			e.preventDefault();
+
+			// Hide the form inputs and button
+			document.querySelector('#form').style.display = 'none';
+
+			// Show the loading spinner and progress bars
+			document.getElementById('loading').style.display = 'flex';
+
+			const fileInput = document.getElementById('file');
+			const folderInput = document.getElementById('folder');
+
+			const files = Array.from(fileInput.files);
+			const folders = Array.from(folderInput.files);
+
+			const allFiles = files.concat(folders);
+
+			if (!allFiles.length) {
+				alert('Please select at least one file or folder.');
+				// Re-show the form if no files were selected
+				document.querySelector('#form').style.display = 'block';
+				document.getElementById('loading').style.display = 'none';
+				return;
+			}
+
+			const progressBar = document.getElementById('progress');
+			const statusText = document.getElementById('status');
+			const fileProgressBar = document.getElementById('file-progress-bar');
+
+			// Show file count progress bar
+			fileProgressBar.style.display = 'block';
+
+			let processedFiles = 0;
+			const totalFiles = allFiles.length;
+
+			// Initialize the file count progress bar
+			const fileProgress = document.getElementById('file-progress');
+			fileProgress.textContent = `0/${totalFiles}`;
+
+			// Calculate total size of all files
+			const totalSize = allFiles.reduce((sum, file) => sum + file.size, 0);
+
+			const processFile = async (file, path) => {
+				console.log(`Processing file: ${path}`);
+				try {
+					const pathParts = path.split('/');
+					const fileName = pathParts.pop(); // Extract the file name
+					const directoryPath = pathParts.join('/'); // Join the remaining parts as directory path
+
+					// Check if file already has 'opt_' in the name
+					const alreadyHasOptPrefix = fileName.includes('opt_');
+					let finalFileName = fileName;
+					let optimizedFile = file;
+
+					if (!alreadyHasOptPrefix) {
+						// Process the file and add 'opt_' prefix
+						finalFileName = `opt_${fileName}`;
+						statusText.textContent = `Processing ${path}...`;
+
+						if (file.type.startsWith('video/')) {
+							optimizedFile = await optimizeVideo(file, updateFFmpegProgress);
+						} else if (file.type.startsWith('audio/')) {
+							optimizedFile = await optimizeAudio(file, updateFFmpegProgress);
+						} else if (file.type.startsWith('image/')) {
+							optimizedFile = await optimizeImage(file);
+						}
+					} else {
+						console.log(`Skipping processing for file: ${path}`);
+						finalFileName = fileName; // Ensure it is not reprocessed
+					}
+
+					finalFileName = `${directoryPath}/${finalFileName}`;
+
+					processedFiles++;
+					const processedSize = allFiles.slice(0, processedFiles).reduce((sum, file) => sum + file.size, 0);
+					updateProgress(processedSize, totalSize);
+					updateFileCountProgress(processedFiles, totalFiles);
+
+					return { fileName: finalFileName, file: optimizedFile };
+				} catch (fileError) {
+					console.error(`Error processing ${path}:`, fileError);
+					statusText.textContent += ` Error processing ${path}.`;
+					return null;
+				}
+			};
+
+			try {
+				if (allFiles.length === 1) {
+					// Process single file
+					const result = await processFile(allFiles[0], allFiles[0].webkitRelativePath || allFiles[0].name);
+					if (result) {
+						statusText.textContent = 'Downloading optimized file...';
+						// Ensure 'opt_' is only added if it's not already present
+						const fileName = result.fileName.split('/').pop(); // Get just the file name
+						console.log(`Final file name for download: ${fileName}`);
+						downloadFile(result.file, fileName);
+						statusText.textContent = 'Download complete!';
+					}
+				} else {
+					// Process multiple files
+					const zip = new JSZip();
+					for (const file of allFiles) {
+						const path = file.webkitRelativePath || file.name;
+						const result = await processFile(file, path);
+						if (result) {
+							zip.file(result.fileName, result.file);
+						}
+					}
+					statusText.textContent = 'Compressing files...';
+					await compressAndDownload(zip, statusText, progressBar);
+				}
+			} catch (error) {
+				alert('Optimization failed: ' + error.message);
+				console.error(error);
+			} finally {
+				setTimeout(() => {
+					document.getElementById('loading').style.display = 'none';
+					progressBar.style.width = '0%';
+					progressBar.textContent = '0%';
+					fileProgressBar.style.display = 'none';
+					fileProgress.textContent = '0/0';
+					// Re-show the form if needed
+					document.querySelector('#form').style.display = 'block';
+				}, 3000);
+			}
+		});
         
         function updateFileCountProgress(processedFiles, totalFiles) {
             const fileProgress = document.getElementById('file-progress');
