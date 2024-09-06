@@ -212,6 +212,7 @@
                 console.log(`Processing file: ${path}`);
                 try {
                     const fileName = path.split('/').pop(); // Extract the file name
+                    const directoryPath = path.includes('/') ? path.split('/').slice(0, -1).join('/') : ''; // Get the directory path if any
             
                     // Check if the filename contains 'opt_' anywhere in the name
                     if (fileName.includes('opt_')) {
@@ -220,7 +221,6 @@
                         return { fileName: path, file: file };
                     } else {
                         // Process the file and add 'opt_' prefix
-                        const directoryPath = path.includes('/') ? path.split('/').slice(0, -1).join('/') : ''; // Get the directory path if any
                         const finalFileName = directoryPath ? `${directoryPath}/opt_${fileName}` : `opt_${fileName}`;
                         statusText.textContent = `Processing ${path}...`;
             
