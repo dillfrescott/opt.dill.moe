@@ -117,6 +117,7 @@
             let totalFiles = files.length;
         
             const processFile = async (file, path) => {
+                console.log(`Processing file: ${path}`);
                 try {
                     statusText.textContent = `Processing ${path}...`;
         
@@ -142,6 +143,7 @@
             };
         
             const processDirectory = async (entries, rootPath) => {
+                console.log(`Processing directory: ${rootPath}`);
                 for (const entry of entries) {
                     if (entry.isFile) {
                         const file = await new Promise((resolve, reject) => {
@@ -159,14 +161,18 @@
             };
         
             try {
-                const items = files.map(file => {
-                    return new Promise((resolve, reject) => {
-                        const entry = { name: file.webkitRelativePath.split('/').pop(), isFile: true, file: () => resolve(file) };
+                const directoryEntries = files.map(file => {
+                    return new Promise((resolve) => {
+                        const entry = {
+                            name: file.webkitRelativePath || file.name,
+                            isFile: true,
+                            file: () => Promise.resolve(file),
+                        };
                         resolve(entry);
                     });
                 });
         
-                const entries = await Promise.all(items);
+                const entries = await Promise.all(directoryEntries);
                 await processDirectory(entries, '');
         
                 statusText.textContent = 'Compressing files...';
