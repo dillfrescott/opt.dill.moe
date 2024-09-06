@@ -214,7 +214,7 @@
                     const fileName = path.split('/').pop(); // Extract the file name
                     const directoryPath = path.includes('/') ? path.split('/').slice(0, -1).join('/') : ''; // Get the directory path if any
             
-                    // Check if the filename already contains 'opt_'
+                    // Check if the filename already contains 'opt_' (anywhere in the name)
                     if (fileName.includes('opt_')) {
                         // Skip processing and return the original file name and path without adding 'opt_'
                         console.log(`Skipping processing for file: ${path}`);
