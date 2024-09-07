@@ -158,12 +158,13 @@
             </div>
         </div>
         <div id="notice-box">
-            <p><strong>Note:</strong></p>
+            <p><strong>Notes:</strong></p>
             <p>Currently works with videos, images, and audio. All processing is done 100% client side.</p>
             <p>Videos, especially longer ones, may take some time to process. Please be patient.</p>
             <p>Files containing <code>opt_</code> in their names will be skipped by the optimization algorithm but will still be included in the final archive.</p>
             <p><code>opt_</code> will be suffixed to the existing filename for each file in the final archive that has been successfully processed. Files that already have <code>opt_</code> in their names and have been skipped, will not receive it a second time.</p>
-        </div>
+            <p>Trying to process a large number of files at once (like over 1000) can lead to the page freezing due to browser limitations. It is best to process files in batches of less than 1000, the smaller the better though.</p>
+	</div>
     </div>
     <script>
 		document.getElementById('form').addEventListener('submit', async (e) => {
