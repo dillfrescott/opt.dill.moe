@@ -200,297 +200,290 @@
         </div>
     </div>
     <script>
-	document.getElementById('form').addEventListener('submit', async (e) => {
-		e.preventDefault();
+    document.getElementById('form').addEventListener('submit', async (e) => {
+        e.preventDefault();
 
-		// Hide the form inputs and button
-		document.querySelector('#form').style.display = 'none';
+        // Hide the form inputs and button
+        document.querySelector('#form').style.display = 'none';
 
-		// Show the loading spinner and progress bars
-		document.getElementById('loading').style.display = 'flex';
+        // Show the loading spinner and progress bars
+        document.getElementById('loading').style.display = 'flex';
 
-		const fileInput = document.getElementById('file');
-		const folderInput = document.getElementById('folder');
+        const fileInput = document.getElementById('file');
+        const folderInput = document.getElementById('folder');
 
-		const files = Array.from(fileInput.files);
-		const folders = Array.from(folderInput.files);
+        const files = Array.from(fileInput.files);
+        const folders = Array.from(folderInput.files);
 
-		const allFiles = files.concat(folders);
+        const allFiles = files.concat(folders);
 
-		if (!allFiles.length) {
-			alert('Please select at least one file or folder.');
-			// Re-show the form if no files were selected
-			document.querySelector('#form').style.display = 'block';
-			document.getElementById('loading').style.display = 'none';
-			return;
-		}
-
-		const progressBar = document.getElementById('progress');
-		const statusText = document.getElementById('status');
-		const fileProgressBar = document.getElementById('file-progress-bar');
-
-		// Show file count progress bar
-		fileProgressBar.style.display = 'block';
-
-		let processedFiles = 0;
-		const totalFiles = allFiles.length;
-
-		// Initialize the file count progress bar
-		const fileProgress = document.getElementById('file-progress');
-		fileProgress.textContent = `0/${totalFiles}`;
-
-		// Calculate total size of all files
-		const totalSize = allFiles.reduce((sum, file) => sum + file.size, 0);
-
-		const processFile = async (file, path) => {
-			console.log(`Processing file: ${path}`);
-			try {
-				const pathParts = path.split('/');
-				const fileName = pathParts.pop(); // Extract the file name
-				const directoryPath = pathParts.join('/'); // Join the remaining parts as directory path
-
-				// Check if file already has 'opt_' in the name
-				const alreadyHasOptPrefix = fileName.includes('opt_');
-				let finalFileName = fileName;
-				let optimizedFile = file;
-
-				if (!alreadyHasOptPrefix) {
-					// Process the file and add 'opt_' prefix
-					finalFileName = `opt_${fileName}`;
-					statusText.textContent = `Processing ${path}...`;
-
-					if (file.type.startsWith('video/')) {
-						optimizedFile = await optimizeVideo(file, updateFFmpegProgress);
-					} else if (file.type.startsWith('audio/')) {
-						optimizedFile = await optimizeAudio(file, updateFFmpegProgress);
-					} else if (file.type.startsWith('image/')) {
-						optimizedFile = await optimizeImage(file);
-					}
-				} else {
-					console.log(`Skipping processing for file: ${path}`);
-					finalFileName = fileName; // Ensure it is not reprocessed
-				}
-
-				finalFileName = `${directoryPath}/${finalFileName}`;
-
-				processedFiles++;
-				const processedSize = allFiles.slice(0, processedFiles).reduce((sum, file) => sum + file.size, 0);
-				updateProgress(processedSize, totalSize);
-				updateFileCountProgress(processedFiles, totalFiles);
-
-				return { fileName: finalFileName, file: optimizedFile };
-			} catch (fileError) {
-				console.error(`Error processing ${path}:`, fileError);
-				statusText.textContent += ` Error processing ${path}.`;
-				return null;
-			}
-		};
-
-		try {
-			if (allFiles.length === 1) {
-				// Process single file
-				const result = await processFile(allFiles[0], allFiles[0].webkitRelativePath || allFiles[0].name);
-				if (result) {
-					statusText.textContent = 'Downloading optimized file...';
-					// Ensure 'opt_' is only added if it's not already present
-					const fileName = result.fileName.split('/').pop(); // Get just the file name
-					console.log(`Final file name for download: ${fileName}`);
-					downloadFile(result.file, fileName);
-					statusText.textContent = 'Download complete!';
-				}
-			} else {
-				// Process multiple files
-				const zip = new JSZip();
-				for (const file of allFiles) {
-					const path = file.webkitRelativePath || file.name;
-					const result = await processFile(file, path);
-					if (result) {
-						zip.file(result.fileName, result.file);
-					}
-				}
-				statusText.textContent = 'Compressing files...';
-				await compressAndDownload(zip, statusText, progressBar);
-			}
-		} catch (error) {
-			alert('Optimization failed: ' + error.message);
-			console.error(error);
-		} finally {
-			setTimeout(() => {
-				document.getElementById('loading').style.display = 'none';
-				progressBar.style.width = '0%';
-				progressBar.textContent = '0%';
-				fileProgressBar.style.display = 'none';
-				fileProgress.textContent = '0/0';
-				// Re-show the form if needed
-				document.querySelector('#form').style.display = 'block';
-			}, 3000);
-		}
-	});
-        
-        function updateFileCountProgress(processedFiles, totalFiles) {
-            const fileProgress = document.getElementById('file-progress');
-            fileProgress.textContent = `${processedFiles}/${totalFiles}`;
+        if (!allFiles.length) {
+            alert('Please select at least one file or folder.');
+            // Re-show the form if no files were selected
+            document.querySelector('#form').style.display = 'block';
+            document.getElementById('loading').style.display = 'none';
+            return;
         }
 
-        async function optimizeVideo(file, progressCallback) {
-            return new Promise((resolve, reject) => {
-                const reader = new FileReader();
-                reader.onload = async (e) => {
-                    const { createFFmpeg, fetchFile } = FFmpeg;
-                    const ffmpeg = createFFmpeg({ 
-                        log: true,
-                        progress: progressCallback
-                    });
+        const progressBar = document.getElementById('progress');
+        const statusText = document.getElementById('status');
+        const fileProgressBar = document.getElementById('file-progress-bar');
 
-                    try {
-                        await ffmpeg.load();
-                        ffmpeg.FS('writeFile', 'input.mp4', new Uint8Array(e.target.result));
-                        await ffmpeg.run('-i', 'input.mp4', '-strict', '-2', '-deadline', 'good', '-crf', '42', '-cpu-used', '4', '-c:a', 'opus', '-b:a', '128k', 'output.webm');
-                        const data = ffmpeg.FS('readFile', 'output.webm');
-                        const optimizedVideo = new Blob([data.buffer], { type: 'video/webm' });
+        // Show file count progress bar
+        fileProgressBar.style.display = 'block';
 
-                        resolve(optimizedVideo);
+        let processedFiles = 0;
+        const totalFiles = allFiles.length;
 
-                        ffmpeg.FS('unlink', 'input.mp4');
-                        ffmpeg.FS('unlink', 'output.webm');
-                    } catch (error) {
-                        reject(error);
+        // Initialize the file count progress bar
+        const fileProgress = document.getElementById('file-progress');
+        fileProgress.textContent = `0/${totalFiles}`;
+
+        // Calculate total size of all files
+        const totalSize = allFiles.reduce((sum, file) => sum + file.size, 0);
+
+        const processFile = async (file, path) => {
+            console.log(`Processing file: ${path}`);
+            try {
+                const pathParts = path.split('/');
+                const fileName = pathParts.pop(); // Extract the file name
+                const directoryPath = pathParts.join('/'); // Join the remaining parts as directory path
+
+                // Check if file already has 'opt_' in the name
+                const alreadyHasOptPrefix = fileName.includes('opt_');
+                let finalFileName = fileName;
+                let optimizedFile = file;
+
+                if (!alreadyHasOptPrefix) {
+                    // Process the file and add 'opt_' prefix
+                    finalFileName = `opt_${fileName}`;
+                    statusText.textContent = `Processing ${path}...`;
+
+                    if (file.type.startsWith('video/')) {
+                        optimizedFile = await optimizeVideo(file, updateFFmpegProgress);
+                    } else if (file.type.startsWith('audio/')) {
+                        optimizedFile = await optimizeAudio(file, updateFFmpegProgress);
+                    } else if (file.type.startsWith('image/')) {
+                        optimizedFile = await optimizeImage(file);
                     }
-                };
-
-                reader.onerror = reject;
-                reader.readAsArrayBuffer(file);
-            });
-        }
-
-        async function optimizeAudio(file, progressCallback) {
-            return new Promise((resolve, reject) => {
-                const reader = new FileReader();
-                reader.onload = async (e) => {
-                    const { createFFmpeg, fetchFile } = FFmpeg;
-                    const ffmpeg = createFFmpeg({ 
-                        log: true,
-                        progress: progressCallback
-                    });
-
-                    try {
-                        await ffmpeg.load();
-                        ffmpeg.FS('writeFile', 'input.audio', new Uint8Array(e.target.result));
-                        await ffmpeg.run('-i', 'input.audio', '-c:a', 'libopus', '-b:a', '128k', 'output.opus');
-                        const data = ffmpeg.FS('readFile', 'output.opus');
-                        const optimizedAudio = new Blob([data.buffer], { type: 'audio/opus' });
-
-                        resolve(optimizedAudio);
-
-                        ffmpeg.FS('unlink', 'input.audio');
-                        ffmpeg.FS('unlink', 'output.opus');
-                    } catch (error) {
-                        reject(error);
-                    }
-                };
-
-                reader.onerror = reject;
-                reader.readAsArrayBuffer(file);
-            });
-        }
-
-        async function optimizeImage(file) {
-            return new Promise((resolve, reject) => {
-                const reader = new FileReader();
-                reader.onload = (e) => {
-                    const img = new Image();
-                    img.onload = () => {
-                        const canvas = document.createElement('canvas');
-                        const ctx = canvas.getContext('2d');
-
-                        // Set canvas size to image size
-                        canvas.width = img.width;
-                        canvas.height = img.height;
-
-                        // Draw image on canvas
-                        ctx.drawImage(img, 0, 0);
-
-                        // Convert image to WebP format and compress
-                        canvas.toBlob((blob) => {
-                            if (blob) {
-                                resolve(blob);
-                            } else {
-                                reject(new Error('Failed to convert image to WebP.'));
-                            }
-                        }, 'image/webp', 0.8); // Adjust quality as needed
-                    };
-                    img.onerror = reject;
-                    img.src = e.target.result;
-                };
-                reader.onerror = reject;
-                reader.readAsDataURL(file);
-            });
-        }
-
-        function updateFFmpegProgress({ ratio }) {
-            if (ratio !== undefined) {
-                const percent = Math.round(ratio * 100);
-                const progressBar = document.getElementById('progress');
-                progressBar.style.width = `${percent}%`;
-                progressBar.textContent = `${percent}%`;
-            }
-        }
-
-       async function compressAndDownload(zip, statusText, progressBar) {
-            const zipContent = await zip.generateAsync({
-                type: 'blob',
-                compression: 'DEFLATE',
-                compressionOptions: { level: 6 },
-            }, (metadata) => {
-                if (metadata.percent) {
-                    const progress = Math.round(metadata.percent);
-                    progressBar.style.width = `${progress}%`;
-                    progressBar.textContent = `${progress}%`;
+                } else {
+                    console.log(`Skipping processing for file: ${path}`);
+                    finalFileName = fileName; // Ensure it is not reprocessed
                 }
-            });
 
-            // Convert zip to .tgz format
-            const zipArrayBuffer = await zipContent.arrayBuffer();
-            const tar = new Uint8Array(zipArrayBuffer);
-            const tarGz = pako.gzip(tar);
+                finalFileName = `${directoryPath}/${finalFileName}`;
 
-            statusText.textContent = 'Finalizing...';
-            const randomString = generateRandomString(8);
-            const tgzFilename = `optimized_media_${randomString}.tgz`;
+                processedFiles++;
+                const processedSize = allFiles.slice(0, processedFiles).reduce((sum, file) => sum + file.size, 0);
+                updateProgress(processedSize, totalSize);
+                updateFileCountProgress(processedFiles, totalFiles);
 
-            downloadFile(new Blob([tarGz]), tgzFilename);
-            statusText.textContent = 'Download complete!';
-        }
-
-        function downloadFile(data, filename) {
-            const url = window.URL.createObjectURL(data);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = filename;
-            document.body.appendChild(a);
-            a.click();
-            a.remove();
-            window.URL.revokeObjectURL(url);
-        }
-
-        function generateRandomString(length) {
-            const chars = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
-            let result = '';
-            for (let i = 0; i < length; i++) {
-                const randomIndex = Math.floor(Math.random() * chars.length);
-                result += chars[randomIndex];
+                return { fileName: finalFileName, file: optimizedFile };
+            } catch (fileError) {
+                console.error(`Error processing ${path}:`, fileError);
+                statusText.textContent += ` Error processing ${path}.`;
+                return null;
             }
-            return result;
+        };
+
+        try {
+            if (allFiles.length === 1) {
+                // Process single file
+                const result = await processFile(allFiles[0], allFiles[0].webkitRelativePath || allFiles[0].name);
+                if (result) {
+                    statusText.textContent = 'Downloading optimized file...';
+                    const fileName = result.fileName.split('/').pop(); // Get just the file name
+                    console.log(`Final file name for download: ${fileName}`);
+                    downloadFile(result.file, fileName);
+                    statusText.textContent = 'Download complete!';
+                }
+            } else {
+                // Process multiple files into a tarball
+                const tar = new JSZip(); // Using JSZip just to create a mock TAR structure, replace with a TAR library
+
+                for (const file of allFiles) {
+                    const path = file.webkitRelativePath || file.name;
+                    const result = await processFile(file, path);
+                    if (result) {
+                        tar.file(result.fileName, result.file);
+                    }
+                }
+
+                statusText.textContent = 'Compressing files...';
+                await compressTarGzAndDownload(tar, statusText, progressBar);
+            }
+        } catch (error) {
+            alert('Optimization failed: ' + error.message);
+            console.error(error);
+        } finally {
+            setTimeout(() => {
+                document.getElementById('loading').style.display = 'none';
+                progressBar.style.width = '0%';
+                progressBar.textContent = '0%';
+                fileProgressBar.style.display = 'none';
+                fileProgress.textContent = '0/0';
+                // Re-show the form if needed
+                document.querySelector('#form').style.display = 'block';
+            }, 3000);
         }
-        function updateProgress(processedSize, totalSize) {
-            const percent = Math.round((processedSize / totalSize) * 100);
+    });
+
+    function updateFileCountProgress(processedFiles, totalFiles) {
+        const fileProgress = document.getElementById('file-progress');
+        fileProgress.textContent = `${processedFiles}/${totalFiles}`;
+    }
+
+    async function optimizeVideo(file, progressCallback) {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = async (e) => {
+                const { createFFmpeg, fetchFile } = FFmpeg;
+                const ffmpeg = createFFmpeg({ 
+                    log: true,
+                    progress: progressCallback
+                });
+
+                try {
+                    await ffmpeg.load();
+                    ffmpeg.FS('writeFile', 'input.mp4', new Uint8Array(e.target.result));
+                    await ffmpeg.run('-i', 'input.mp4', '-strict', '-2', '-deadline', 'good', '-crf', '42', '-cpu-used', '4', '-c:a', 'opus', '-b:a', '128k', 'output.webm');
+                    const data = ffmpeg.FS('readFile', 'output.webm');
+                    const optimizedVideo = new Blob([data.buffer], { type: 'video/webm' });
+
+                    resolve(optimizedVideo);
+
+                    ffmpeg.FS('unlink', 'input.mp4');
+                    ffmpeg.FS('unlink', 'output.webm');
+                } catch (error) {
+                    reject(error);
+                }
+            };
+
+            reader.onerror = reject;
+            reader.readAsArrayBuffer(file);
+        });
+    }
+
+    async function optimizeAudio(file, progressCallback) {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = async (e) => {
+                const { createFFmpeg, fetchFile } = FFmpeg;
+                const ffmpeg = createFFmpeg({ 
+                    log: true,
+                    progress: progressCallback
+                });
+
+                try {
+                    await ffmpeg.load();
+                    ffmpeg.FS('writeFile', 'input.audio', new Uint8Array(e.target.result));
+                    await ffmpeg.run('-i', 'input.audio', '-c:a', 'libopus', '-b:a', '128k', 'output.opus');
+                    const data = ffmpeg.FS('readFile', 'output.opus');
+                    const optimizedAudio = new Blob([data.buffer], { type: 'audio/opus' });
+
+                    resolve(optimizedAudio);
+
+                    ffmpeg.FS('unlink', 'input.audio');
+                    ffmpeg.FS('unlink', 'output.opus');
+                } catch (error) {
+                    reject(error);
+                }
+            };
+
+            reader.onerror = reject;
+            reader.readAsArrayBuffer(file);
+        });
+    }
+
+    async function optimizeImage(file) {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const img = new Image();
+                img.onload = () => {
+                    const canvas = document.createElement('canvas');
+                    const ctx = canvas.getContext('2d');
+
+                    // Set canvas size to image size
+                    canvas.width = img.width;
+                    canvas.height = img.height;
+
+                    // Draw image on canvas
+                    ctx.drawImage(img, 0, 0);
+
+                    // Convert image to WebP format and compress
+                    canvas.toBlob((blob) => {
+                        if (blob) {
+                            resolve(blob);
+                        } else {
+                            reject(new Error('Failed to convert image to WebP.'));
+                        }
+                    }, 'image/webp', 0.8); // Adjust quality as needed
+                };
+                img.onerror = reject;
+                img.src = e.target.result;
+            };
+            reader.onerror = reject;
+            reader.readAsDataURL(file);
+        });
+    }
+
+    function updateFFmpegProgress({ ratio }) {
+        if (ratio !== undefined) {
+            const percent = Math.round(ratio * 100);
             const progressBar = document.getElementById('progress');
             progressBar.style.width = `${percent}%`;
             progressBar.textContent = `${percent}%`;
         }
-        document.getElementById('notice-header').addEventListener('click', function() {
-            document.getElementById('notice-box').classList.toggle('expanded');
-        });
+    }
+
+    async function compressTarGzAndDownload(tar, statusText, progressBar) {
+        statusText.textContent = 'Compressing to .tgz...';
+        const tarData = await tar.generateAsync({ type: 'blob' });
+        const gzip = new pako.gzip(await tarData.arrayBuffer(), { level: 6 }); // Adjust the compression level as needed
+
+        const blob = new Blob([gzip], { type: 'application/gzip' });
+        statusText.textContent = 'Downloading .tgz file...';
+        downloadFile(blob, 'optimized_files.tgz');
+        statusText.textContent = 'Download complete!';
+    }
+
+    function updateProgress(processedSize, totalSize) {
+        const percent = Math.round((processedSize / totalSize) * 100);
+        const progressBar = document.getElementById('progress');
+        progressBar.style.width = `${percent}%`;
+        progressBar.textContent = `${percent}%`;
+    }
+
+    function downloadFile(blob, fileName) {
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = fileName;
+        a.click();
+        URL.revokeObjectURL(url);
+    }
+
+    function generateRandomString(length) {
+        const chars = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
+        let result = '';
+        for (let i = 0; i < length; i++) {
+    	    const randomIndex = Math.floor(Math.random() * chars.length);
+    	    result += chars[randomIndex];
+        }
+        return result;
+    }
+
+    function updateProgress(processedSize, totalSize) {
+        const percent = Math.round((processedSize / totalSize) * 100);
+        const progressBar = document.getElementById('progress');
+        progressBar.style.width = `${percent}%`;
+        progressBar.textContent = `${percent}%`;
+    }
+
+    document.getElementById('notice-header').addEventListener('click', function() {
+        document.getElementById('notice-box').classList.toggle('expanded');
+    });
     </script>
 </body>
 </html>
