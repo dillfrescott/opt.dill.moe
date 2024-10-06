@@ -363,47 +363,36 @@
             });
         }
 
-	async function optimizeAudio(file, progressCallback) {
-	    return new Promise((resolve, reject) => {
-	        const reader = new FileReader();
-	        reader.onload = async (e) => {
-	            const { createFFmpeg, fetchFile } = FFmpeg;
-	            const ffmpeg = createFFmpeg({ 
-	                log: true,
-	                progress: progressCallback
-	            });
-	
-	            try {
-	                const originalFileName = file.name;
-	                const outputFileName = `${originalFileName}.opus`;
-	
-	                await ffmpeg.load();
-	
-	                // Write the input file to FFmpeg's virtual file system
-	                ffmpeg.FS('writeFile', 'input.audio', new Uint8Array(e.target.result));
-	
-	                // Run FFmpeg to optimize audio
-	                await ffmpeg.run('-i', 'input.audio', '-c:a', 'libopus', '-b:a', '128k', outputFileName);
-	
-	                // Read the output file from FS
-	                const data = ffmpeg.FS('readFile', outputFileName);
-	                const optimizedAudio = new Blob([data.buffer], { type: 'audio/opus' });
-	
-	                // Resolve with the optimized audio Blob and new name
-	                resolve({ file: optimizedAudio, name: outputFileName });
-	
-	                // Clean up FFmpeg's virtual FS
-	                ffmpeg.FS('unlink', 'input.audio');
-	                ffmpeg.FS('unlink', outputFileName);
-	            } catch (error) {
-	                reject(error);
-	            }
-	        };
-	
-	        reader.onerror = reject;
-	        reader.readAsArrayBuffer(file);
-	    });
-	}
+        async function optimizeAudio(file, progressCallback) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = async (e) => {
+                    const { createFFmpeg, fetchFile } = FFmpeg;
+                    const ffmpeg = createFFmpeg({ 
+                        log: true,
+                        progress: progressCallback
+                    });
+
+                    try {
+                        await ffmpeg.load();
+                        ffmpeg.FS('writeFile', 'input.audio', new Uint8Array(e.target.result));
+                        await ffmpeg.run('-i', 'input.audio', '-c:a', 'libopus', '-b:a', '128k', 'output.opus');
+                        const data = ffmpeg.FS('readFile', 'output.opus');
+                        const optimizedAudio = new Blob([data.buffer], { type: 'audio/opus' });
+
+                        resolve(optimizedAudio);
+
+                        ffmpeg.FS('unlink', 'input.audio');
+                        ffmpeg.FS('unlink', 'output.opus');
+                    } catch (error) {
+                        reject(error);
+                    }
+                };
+
+                reader.onerror = reject;
+                reader.readAsArrayBuffer(file);
+            });
+        }
 
         async function optimizeImage(file) {
             return new Promise((resolve, reject) => {
