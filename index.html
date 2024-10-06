@@ -374,19 +374,25 @@
 	            });
 	
 	            try {
-	                // Get the original filename and change extension to .opus
 	                const originalFileName = file.name;
-	                const outputFileName = `opt_${originalFileName.replace(/\.[^/.]+$/, '')}.opus`;
+	                const outputFileName = `${originalFileName}.opus`;
 	
 	                await ffmpeg.load();
+	
+	                // Write the input file to FFmpeg's virtual file system
 	                ffmpeg.FS('writeFile', 'input.audio', new Uint8Array(e.target.result));
+	
+	                // Run FFmpeg to optimize audio
 	                await ffmpeg.run('-i', 'input.audio', '-c:a', 'libopus', '-b:a', '128k', outputFileName);
+	
+	                // Read the output file from FS
 	                const data = ffmpeg.FS('readFile', outputFileName);
 	                const optimizedAudio = new Blob([data.buffer], { type: 'audio/opus' });
 	
+	                // Resolve with the optimized audio Blob and new name
 	                resolve({ file: optimizedAudio, name: outputFileName });
 	
-	                // Clean up the filesystem
+	                // Clean up FFmpeg's virtual FS
 	                ffmpeg.FS('unlink', 'input.audio');
 	                ffmpeg.FS('unlink', outputFileName);
 	            } catch (error) {
